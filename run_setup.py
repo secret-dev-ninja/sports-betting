@@ -5,8 +5,9 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 if __name__ == "__main__":
-    db = DatabaseManager(None)
+    db = DatabaseManager()
     try:
+        db.ensure_database_exists()
         db.ensure_tables_exist()
         db.verify_tables()
     except Exception as e:
