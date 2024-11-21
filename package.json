@@ -1,0 +1,9 @@
+{
+    "scripts": {
+        "build": "cd frontend && npm install && npm run build",
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "express": "^4.17.1"
+    }
+}
