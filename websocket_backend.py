@@ -39,8 +39,6 @@ class ConnectionManager:
         self.active_connections.remove(websocket)
         logger.info("WebSocket connection closed.")
 
-
-
 manager = ConnectionManager()
 
 @app.websocket("/ws")

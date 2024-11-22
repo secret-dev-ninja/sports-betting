@@ -86,10 +86,10 @@ class OddsCollector:
 
     def get_pinnacle_odds(self) -> Optional[Dict]:
         """Fetch odds data from Pinnacle API"""
-        url = "https://pinnacle-odds.p.rapidapi.com/kit/v1/markets"
+        url = os.getenv('PINNACLE_API_URL', "https://pinnacle-odds.p.rapidapi.com/kit/v1/markets")
         
         headers = {
-            "x-rapidapi-host": "pinnacle-odds.p.rapidapi.com",
+            "x-rapidapi-host": os.getenv('PINNACLE_API_HOST', "pinnacle-odds.p.rapidapi.com"),
             "x-rapidapi-key": os.getenv('PINNACLE_API_KEY', 'a8566af92cmsha8a9ac59b2a9cbcp11230fjsn67dc35effb7f')
         }
         
@@ -353,7 +353,7 @@ def main():
                 
                 if collector.db_manager.first_pass:
                     logger.info("Initial data load complete")
-                    collector.db_manager.verify_data_counts(conn)
+                    # collector.db_manager.verify_data_counts(conn)
                     collector.db_manager.first_pass = False
                 elif collector.db_manager.changes_this_update:
                     logger.info("Updates detected for:")
