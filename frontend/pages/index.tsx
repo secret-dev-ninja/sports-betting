@@ -14,39 +14,37 @@ interface OddsUpdate {
 }
 
 const OddsDashboard = () => {
-  const [updates, setUpdates] = useState<OddsUpdate[]>([]);
+    const [updates, setUpdates] = useState<OddsUpdate[]>([]);
 
-  // useEffect(() => {
-  const ws = new WebSocket('ws://localhost:8000/ws');
-  console.log('websocket:', ws);
+    useEffect(() => {
+    const ws = new WebSocket('ws://localhost:8000/ws');
+    console.log('websocket:', ws);
 
-  ws.onopen = () => {
-    console.log('Connected to WebSocket');
-    ws.send('Hello, server. I am a client.');
-    // setWs(websocket);
-  };
+    ws.onopen = () => {
+      console.log('Connected to WebSocket');
+      ws.send('Hello, server. I am a client.');
+    };
 
-  ws.onmessage = (event) => {
-    // console.log('Received message...', event.data);
-    const data = JSON.parse(event.data);
-    setUpdates(prev => [{
-      ...data,
-      id: `${data.event_id}-${Date.now()}-${data.table_updated}`
-    }, ...prev].slice(0, 50)); // Keep last 50 updates
-  };
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setUpdates(prev => [{
+        ...data,
+        id: `${data.event_id}-${Date.now()}-${data.table_updated}`
+      }, ...prev].slice(0, 50)); // Keep last 50 updates
+    };
 
-  ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
-  };
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
 
-  ws.onclose = () => {
-    console.log('WebSocket connection closed');
-  };
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
 
-  //   return () => {
-  //     websocket.close();
-  //   };
-  // }, []);
+      return () => {
+        ws.close();
+      };
+  }, []);
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
