@@ -3,36 +3,50 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 
+// Define the shape of the odds update data
+interface OddsUpdate {
+  event_id: string;
+  home_team: string;
+  away_team: string;
+  table_updated: string;
+  update_time: string;
+  id: string;
+}
+
 const OddsDashboard = () => {
-  const [updates, setUpdates] = useState([]);
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [updates, setUpdates] = useState<OddsUpdate[]>([]);
 
-  useEffect(() => {
-    const websocket = new WebSocket('ws://137.184.183.15:8000/ws');
-    
-    websocket.onopen = () => {
-        console.log('Connected to WebSocket');
-        setWs(websocket);
-    };
+  // useEffect(() => {
+  const ws = new WebSocket('ws://localhost:8000/ws');
+  console.log('websocket:', ws);
 
-    websocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setUpdates(prev => [{
-        ...data,
-        id: `${data.event_id}-${Date.now()}`
-      }, ...prev].slice(0, 50)); // Keep last 50 updates
-    };
+  ws.onopen = () => {
+    console.log('Connected to WebSocket');
+    ws.send('Hello, server. I am a client.');
+    // setWs(websocket);
+  };
 
-    websocket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
+  ws.onmessage = (event) => {
+    // console.log('Received message...', event.data);
+    const data = JSON.parse(event.data);
+    setUpdates(prev => [{
+      ...data,
+      id: `${data.event_id}-${Date.now()}-${data.table_updated}`
+    }, ...prev].slice(0, 50)); // Keep last 50 updates
+  };
 
-    return () => {
-      if (websocket) {
-        websocket.close();
-      }
-    };
-  }, []);
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
+
+  ws.onclose = () => {
+    console.log('WebSocket connection closed');
+  };
+
+  //   return () => {
+  //     websocket.close();
+  //   };
+  // }, []);
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -45,8 +59,8 @@ const OddsDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {updates.map(update => (
-              <div key={update.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            {updates.map((update, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex-1">
                   <div className="font-medium">
                     {update.home_team} vs {update.away_team}
@@ -60,7 +74,7 @@ const OddsDashboard = () => {
                     {update.table_updated}
                   </Badge>
                   <div className="text-sm text-gray-500">
-                    {new Date(update.update_time).toLocaleTimeString()}
+                    {new Date(update.update_time).toLocaleTimeString() || 'Invalid time'}
                   </div>
                 </div>
               </div>

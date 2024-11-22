@@ -13,6 +13,8 @@ import time
 from copy import deepcopy
 from config import DB_CONFIG
 
+load_dotenv()
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -108,6 +110,7 @@ class OddsCollector:
             
             if 'last' in data:
                 self.last_timestamp = data['last']
+                logger.info('set last_timestamp:' + str(self.last_timestamp))
             
             return data
         
