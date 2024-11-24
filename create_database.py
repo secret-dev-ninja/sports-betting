@@ -48,6 +48,16 @@ class DatabaseManager:
             logger.info("TimescaleDB extension ensured.")
 
             # # Create tables
+
+            cur.execute('''
+            CREATE TABLE IF NOT EXISTS api_request_logs (
+                id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                sport_id INTEGER,
+                last_call BIGINT,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            );
+            ''')
+
             cur.execute('''
             CREATE TABLE IF NOT EXISTS events (
                 event_id BIGINT PRIMARY KEY,
