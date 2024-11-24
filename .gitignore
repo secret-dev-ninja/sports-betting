@@ -1,4 +1,4 @@
 node_modules
 /frontend/.next
 __pycache__
-odds_collector.log
+/odds_collector.log
