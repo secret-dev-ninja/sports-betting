@@ -185,8 +185,59 @@ class DatabaseManager:
             logger.error(f"Error verifying tables: {e}")
             raise
 
+    def setup_triggers(self):
+        logger.info("Setting up triggers in the database.")
+
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor()
+
+            # Create notification function
+            cur.execute("""
+            CREATE OR REPLACE FUNCTION notify_odds_update() RETURNS TRIGGER AS $$
+            DECLARE
+                event_data json;
+            BEGIN
+                SELECT json_build_object(
+                    'event_id', e.event_id,
+                    'home_team', e.home_team,
+                    'away_team', e.away_team,
+                    'table_updated', TG_TABLE_NAME,
+                    'update_time', CURRENT_TIMESTAMP
+                ) INTO event_data
+                FROM events e
+                WHERE e.event_id = NEW.event_id;
+
+                PERFORM pg_notify('odds_update', event_data::text);
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+            """)
+
+            # Create triggers for relevant tables
+            triggers = ["events", "money_lines", "spreads", "totals", "team_totals"]
+            for table in triggers:
+                cur.execute(f"""
+                DROP TRIGGER IF EXISTS odds_notify_trigger ON {table};
+                CREATE TRIGGER odds_notify_trigger
+                    AFTER INSERT ON {table}
+                    FOR EACH ROW
+                    EXECUTE FUNCTION notify_odds_update();
+                """)
+            
+            conn.commit()
+            logger.info("Configured triggers successfully.")
+            cur.close()
+            conn.close()
+
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error Configuring triggers: {e}")
+            raise
 
 if __name__ == "__main__":
     db = DatabaseManager()
     db.ensure_database_exists()
     db.ensure_tables_exist()
+    db.setup_triggers()
+
