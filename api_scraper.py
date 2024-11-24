@@ -12,6 +12,7 @@ import sys
 import time
 from copy import deepcopy
 from config import DB_CONFIG
+import multiprocessing
 
 load_dotenv()
 
@@ -79,12 +80,66 @@ class DatabaseManager:
         finally:
             cur.close()
 
+    def insert_log(self, conn, sports, last):
+        cur = conn.cursor()
+        # Check if the log already exists
+        try:
+            cur.execute('''
+                SELECT 1 FROM api_request_logs 
+                WHERE sport_id = %s AND last_call = %s
+            ''', (sports, last))
+
+            # If no rows are returned, insert the new log
+            if cur.fetchone() is None:
+                try:
+                    # Execute the INSERT query
+                    cur.execute('''
+                        INSERT INTO api_request_logs (
+                            sport_id, last_call, created_at
+                        ) VALUES (%s, %s, DEFAULT)
+                    ''', (sports, last))
+
+                    # Commit the transaction
+                    conn.commit()
+                    print("Log inserted successfully.")
+                except psycopg2.Error as e:
+                    # Rollback in case of an error
+                    conn.rollback()
+                    print(f"An error occurred: {e}")
+            else:
+                print("Log already exists. No insert performed.")
+        finally:
+            cur.close()
+            conn.close()
+
+    def get_last_call(self, conn, sports):
+        cur = conn.cursor()
+        try:
+            query = '''
+                SELECT MAX(last_call) FROM api_request_logs 
+                WHERE sport_id = %s;
+            '''
+            cur.execute(query, (sports,))
+            return cur.fetchone()[0]
+            
+        except Exception as e:
+            logger.error(f"Error inserting log: {e}")
+        finally:
+            cur.close()
+
 class OddsCollector:
     def __init__(self):
         self.db_manager = DatabaseManager()
         self.last_timestamp = None
 
-    def get_pinnacle_odds(self) -> Optional[Dict]:
+    def get_pinnacle_odds(self, sport_id: str) -> Optional[Dict]:
+        conn = self.db_manager.get_connection()
+
+        if not self.last_timestamp:
+            last = self.db_manager.get_last_call(conn, sport_id)
+            if last:
+                self.last_timestamp = last
+
         """Fetch odds data from Pinnacle API"""
         url = os.getenv('PINNACLE_API_URL', "https://pinnacle-odds.p.rapidapi.com/kit/v1/markets")
         
@@ -94,15 +149,14 @@ class OddsCollector:
         }
         
         params = {
-            "sport_id": "1",
-            "is_have_odds": "true",
-            "event_type": "prematch"
+            "sport_id": sport_id,
+            "is_have_odds": "true"
         }
         
         if self.last_timestamp:
             params["since"] = str(self.last_timestamp)
         
-        logger.info(f"Making API request to Pinnacle{' with since=' + str(self.last_timestamp) if self.last_timestamp else ''}")
+        logger.info(f"Making API request to Pinnacle{' with sport_id=' + str(sport_id) + ' since=' + str(self.last_timestamp) if self.last_timestamp else ''}")
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
@@ -112,6 +166,8 @@ class OddsCollector:
                 self.last_timestamp = data['last']
                 logger.info('set last_timestamp:' + str(self.last_timestamp))
             
+            self.db_manager.insert_log(conn, sport_id, self.last_timestamp)
+
             return data
         
         except requests.exceptions.RequestException as e:
@@ -326,14 +382,36 @@ class OddsCollector:
             logger.error(f"Error storing event {event['event_id']}: {str(e)}")
             raise
 
-def main():
-    logger.info("Starting odds collection process")
-    collector = OddsCollector()
-    
+def get_sports_ids():
+    url = os.getenv('PINNACLE_API_SPORTS_URL', "https://pinnacle-odds.p.rapidapi.com/kit/v1/sports")
+        
+    headers = {
+        "x-rapidapi-host": os.getenv('PINNACLE_API_HOST', "pinnacle-odds.p.rapidapi.com"),
+        "x-rapidapi-key": os.getenv('PINNACLE_API_KEY', 'a8566af92cmsha8a9ac59b2a9cbcp11230fjsn67dc35effb7f')
+    }
+
+    logger.info("Requesting sports list information from Pinnacle API")
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        
+        ids = [sport['id'] for sport in data]
+        return ids
+        
+    except requests.exceptions.RequestException as e:
+            logger.error(f"API request failed: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response content: {e.response.text}")
+            return None
+
+
+def store_sport_info(collector, sport_id):
     while True:
         try:
             collector.db_manager.clear_changes()
-            data = collector.get_pinnacle_odds()
+            data = collector.get_pinnacle_odds(sport_id)
             
             if not data or not data.get('events'):
                 logger.info("No new data received from API")
@@ -369,6 +447,25 @@ def main():
         
         time.sleep(1)
 
+RATE_LIMIT = 5
+DELAY = 1 / RATE_LIMIT 
+MAX_CONCURRENT_REQUESTS = 3
+
+semaphore = multiprocessing.Semaphore(MAX_CONCURRENT_REQUESTS)
+
+def process_sport_id(collector, sport_id):
+    with semaphore:
+        store_sport_info(collector, sport_id)
+
+
+def main():
+    logger.info("Starting odds collection process")
+    collector = OddsCollector()
+    sport_ids = get_sports_ids()
+
+    with multiprocessing.Pool() as pool:
+        pool.starmap(process_sport_id, [(collector, sport_id) for sport_id in sport_ids])
+    
 if __name__ == "__main__":
     try:
         main()
