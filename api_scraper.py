@@ -20,7 +20,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        RotatingFileHandler('odds_collector.log', maxBytes=10*1024*1024, backupCount=5),
+        # RotatingFileHandler('odds_collector.log', maxBytes=10*1024*1024, backupCount=5),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -467,6 +467,7 @@ def main():
     collector = OddsCollector()
     sport_ids = get_sports_ids()
 
+    logger.info("Starting multiprocessing...")
     with multiprocessing.Pool() as pool:
         pool.starmap(process_sport_id, [(collector, sport_id) for sport_id in sport_ids])
     

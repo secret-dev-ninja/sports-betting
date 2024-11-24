@@ -20,15 +20,15 @@ const OddsDashboard = () => {
 
       useEffect(() => {
       const ws = new WebSocket('ws://localhost:8000/ws');
-      console.log('websocket:', ws);
-
+      
       ws.onopen = () => {
         console.log('Connected to WebSocket');
-        ws.send('Hello, server. I am a client.');
       };
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log('data:', data);
+        
         setUpdates(prev => [{
           ...data,
           id: `${data.event_id}-${Date.now()}-${data.table_updated}`
@@ -100,31 +100,7 @@ const OddsDashboard = () => {
                     </div>
                   </div>
                 )
-            )}
-            {/* {updates.map((update, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <div className="font-bold">
-                    {sportsList[update.sport_id - 1]}
-                  </div>
-                  <div className="font-medium">
-                    {update.home_team} vs {update.away_team}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Event ID: {update.event_id}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary">
-                    {update.table_updated}
-                  </Badge>
-                  <div className="text-sm text-gray-500">
-                    {new Date(update.update_time).toLocaleTimeString() || 'Invalid time'}
-                  </div>
-                </div>
-              </div>
-            ))} */}
-            
+            )}  
             {updates.length === 0 && (
               <div className="text-center text-gray-500 py-8">
                 Waiting for updates...

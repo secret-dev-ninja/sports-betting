@@ -5,10 +5,9 @@ import psycopg2.extras
 import json
 import asyncio
 import logging
-from typing import List, Dict
+from typing import List
 from dotenv import load_dotenv
 from config import DB_CONFIG
-import random
 
 load_dotenv()
 
@@ -48,7 +47,7 @@ async def websocket_endpoint(websocket: WebSocket):
     
     while True:
         try: 
-            await websocket.receive_text()
+            # await websocket.receive_text()
             
             conn = psycopg2.connect(**DB_CONFIG)
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
@@ -59,6 +58,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 conn.poll()
                 while conn.notifies:
                     notify = conn.notifies.pop()
+                    logger.info('msg'+ str(json.loads(notify.payload)))
                     await websocket.send_json(json.loads(notify.payload))
 
                     await asyncio.sleep(0.1)

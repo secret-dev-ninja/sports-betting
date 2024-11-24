@@ -199,6 +199,7 @@ class DatabaseManager:
                 -- For events table
                 IF TG_TABLE_NAME = 'events' THEN
                     PERFORM pg_notify('odds_update', json_build_object(
+                        'sport_id', NEW.sport_id,
                         'event_id', NEW.event_id,
                         'home_team', NEW.home_team,
                         'away_team', NEW.away_team,
@@ -208,6 +209,7 @@ class DatabaseManager:
                 -- For other odds tables
                 ELSE 
                     PERFORM pg_notify('odds_update', json_build_object(
+                        'sport_id', e.sport_id,
                         'event_id', e.event_id,
                         'home_team', e.home_team,
                         'away_team', e.away_team,
