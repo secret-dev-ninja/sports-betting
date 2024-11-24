@@ -91,7 +91,8 @@ class DatabaseManager:
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 line_id BIGINT,
                 number INTEGER,
-                FOREIGN KEY (event_id) REFERENCES events (event_id) ON DELETE CASCADE
+                FOREIGN KEY (event_id) REFERENCES events (event_id) ON DELETE CASCADE,
+                CONSTRAINT unique_event_period UNIQUE (event_id, period_number)
             );
             ''')
 

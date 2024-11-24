@@ -10,7 +10,6 @@ import logging
 from logging.handlers import RotatingFileHandler
 import sys
 import time
-from copy import deepcopy
 from config import DB_CONFIG
 import multiprocessing
 
@@ -83,34 +82,30 @@ class DatabaseManager:
     def insert_log(self, conn, sports, last):
         cur = conn.cursor()
         # Check if the log already exists
-        try:
-            cur.execute('''
-                SELECT 1 FROM api_request_logs 
-                WHERE sport_id = %s AND last_call = %s
-            ''', (sports, last))
+        cur.execute('''
+            SELECT 1 FROM api_request_logs 
+            WHERE sport_id = %s AND last_call = %s
+        ''', (sports, last))
 
-            # If no rows are returned, insert the new log
-            if cur.fetchone() is None:
-                try:
-                    # Execute the INSERT query
-                    cur.execute('''
-                        INSERT INTO api_request_logs (
-                            sport_id, last_call, created_at
-                        ) VALUES (%s, %s, DEFAULT)
-                    ''', (sports, last))
+        # If no rows are returned, insert the new log
+        if cur.fetchone() is None:
+            try:
+                # Execute the INSERT query
+                cur.execute('''
+                    INSERT INTO api_request_logs (
+                        sport_id, last_call, created_at
+                    ) VALUES (%s, %s, DEFAULT)
+                ''', (sports, last))
 
-                    # Commit the transaction
-                    conn.commit()
-                    print("Log inserted successfully.")
-                except psycopg2.Error as e:
-                    # Rollback in case of an error
-                    conn.rollback()
-                    print(f"An error occurred: {e}")
-            else:
-                print("Log already exists. No insert performed.")
-        finally:
-            cur.close()
-            conn.close()
+                # Commit the transaction
+                conn.commit()
+                print("Request log inserted successfully.")
+            except psycopg2.Error as e:
+                # Rollback in case of an error
+                conn.rollback()
+                print(f"An error occurred: {e}")
+        else:
+            print("Request log already exists. No insert performed.")
 
     def get_last_call(self, conn, sports):
         cur = conn.cursor()
@@ -124,8 +119,6 @@ class DatabaseManager:
             
         except Exception as e:
             logger.error(f"Error inserting log: {e}")
-        finally:
-            cur.close()
 
 class OddsCollector:
     def __init__(self):
@@ -283,12 +276,22 @@ class OddsCollector:
                 period_number = int(period_key.replace('num_', ''))
                 
                 cur.execute('''
-                INSERT INTO periods (
-                    event_id, period_number, period_status, cutoff,
-                    max_spread, max_money_line, max_total, max_team_total,
-                    line_id, number
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING period_id
+                    INSERT INTO periods (
+                        event_id, period_number, period_status, cutoff,
+                        max_spread, max_money_line, max_total, max_team_total,
+                        line_id, number
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (event_id, period_number)
+                    DO UPDATE SET 
+                        period_status = EXCLUDED.period_status,
+                        cutoff = EXCLUDED.cutoff,
+                        max_spread = EXCLUDED.max_spread,
+                        max_money_line = EXCLUDED.max_money_line,
+                        max_total = EXCLUDED.max_total,
+                        max_team_total = EXCLUDED.max_team_total,
+                        line_id = EXCLUDED.line_id,
+                        number = EXCLUDED.number
+                    RETURNING period_id
                 ''', (
                     event['event_id'],
                     period_number,
@@ -406,7 +409,6 @@ def get_sports_ids():
                 logger.error(f"Response content: {e.response.text}")
             return None
 
-
 def store_sport_info(collector, sport_id):
     while True:
         try:
@@ -428,7 +430,7 @@ def store_sport_info(collector, sport_id):
                     except Exception as e:
                         logger.error(f"Error processing event: {e}")
                         continue
-                
+
                 if collector.db_manager.first_pass:
                     logger.info("Initial data load complete")
                     # collector.db_manager.verify_data_counts(conn)
@@ -437,7 +439,9 @@ def store_sport_info(collector, sport_id):
                     logger.info("Updates detected for:")
                     for game in sorted(collector.db_manager.changes_this_update):
                         logger.info(f"  • {game}")
-                
+            except Exception as e:
+                logger.error(f"Process failed: {e}")
+
             finally:
                 cur.close()
                 conn.close()
