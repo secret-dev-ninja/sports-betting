@@ -12,8 +12,8 @@ interface OddsUpdate {
   event_id: string;
   home_team: string;
   away_team: string;
-  table_updated: string[];
-  update_time: string[];
+  table_updated: string;
+  update_time: string;
   id: string;
 }
 
@@ -50,14 +50,8 @@ const OddsDashboard = () => {
                   // Merge the updates for the existing entry
                   updatedUpdates[existingUpdateIndex] = {
                     ...updatedUpdates[existingUpdateIndex],
-                    table_updated: [
-                      ...updatedUpdates[existingUpdateIndex].table_updated,
-                      data.table_updated,
-                    ],
-                    update_time: [
-                      ...updatedUpdates[existingUpdateIndex].update_time,
-                      data.update_time,
-                    ],
+                    table_updated: data.table_updated,
+                    update_time: data.update_time,
                   };
                 } else {
                   // If no existing entry, add the new data
@@ -65,8 +59,8 @@ const OddsDashboard = () => {
                     {
                       ...data,
                       id: `${data.event_id}-${Date.now()}-${data.table_updated}`,
-                      table_updated: [data.table_updated],
-                      update_time: [data.update_time],
+                      table_updated: data.table_updated,
+                      update_time: data.update_time,
                     },
                     ...updatedUpdates,
                   ];
@@ -166,13 +160,9 @@ const OddsDashboard = () => {
                         </div>
                       </div>
                       <div className="flex w-[30%] items-center gap-3">
-                        <Badge variant="secondary">
-                          {update.table_updated.join(", ")} {/* Ensure join() works */}
-                        </Badge>
+                        <Badge variant='secondary'>{update.table_updated}</Badge>
                         <div className="text-sm text-gray-500">
-                          {update.update_time
-                            .map((time) => new Date(time).toLocaleTimeString())
-                            .join(", ") || 'Invalid time'}
+                          {new Date(update.update_time).toISOString().slice(0, 19)}
                         </div>
                       </div>
                     </div>
