@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
-import axios from 'axios';
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // Define the shape of the odds update data
 interface OddsUpdate {
@@ -21,83 +23,82 @@ const OddsDashboard = () => {
       const [selectedData, setSelectedData] = useState<any | null>(null);
 
       useEffect(() => {
-      const ws = new WebSocket('ws://localhost:8000/ws');
-      
-      ws.onopen = () => {
-        console.log('Connected to WebSocket');
-      };
+        const ws = new WebSocket(process.env.REACT_APP_WS_URL);
+        
+        ws.onopen = () => {
+          console.log('Connected to WebSocket');
+        };
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-  
-          if (data && data.sport_id && data.event_id) {
-            setUpdates(prevUpdates => {
-              // Find the index of the existing update, if any
-              const existingUpdateIndex = prevUpdates.findIndex(
-                (update) =>
-                  update.sport_id === data.sport_id &&
-                  update.event_id === data.event_id &&
-                  update.home_team === data.home_team &&
-                  update.away_team === data.away_team
-              );
-  
-              let updatedUpdates = [...prevUpdates];
-  
-              if (existingUpdateIndex !== -1) {
-                // Merge the updates for the existing entry
-                updatedUpdates[existingUpdateIndex] = {
-                  ...updatedUpdates[existingUpdateIndex],
-                  table_updated: [
-                    ...updatedUpdates[existingUpdateIndex].table_updated,
-                    data.table_updated,
-                  ],
-                  update_time: [
-                    ...updatedUpdates[existingUpdateIndex].update_time,
-                    data.update_time,
-                  ],
-                };
-              } else {
-                // If no existing entry, add the new data
-                updatedUpdates = [
-                  {
-                    ...data,
-                    id: `${data.event_id}-${Date.now()}-${data.table_updated}`,
-                    table_updated: [data.table_updated],
-                    update_time: [data.update_time],
-                  },
-                  ...updatedUpdates,
-                ];
-              }
-  
-              // Keep only the last 50 updates
-              return updatedUpdates.slice(0, 50);
-            });
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+    
+            if (data && data.sport_id && data.event_id) {
+              setUpdates(prevUpdates => {
+                // Find the index of the existing update, if any
+                const existingUpdateIndex = prevUpdates.findIndex(
+                  (update) =>
+                    update.sport_id === data.sport_id &&
+                    update.event_id === data.event_id &&
+                    update.home_team === data.home_team &&
+                    update.away_team === data.away_team
+                );
+    
+                let updatedUpdates = [...prevUpdates];
+    
+                if (existingUpdateIndex !== -1) {
+                  // Merge the updates for the existing entry
+                  updatedUpdates[existingUpdateIndex] = {
+                    ...updatedUpdates[existingUpdateIndex],
+                    table_updated: [
+                      ...updatedUpdates[existingUpdateIndex].table_updated,
+                      data.table_updated,
+                    ],
+                    update_time: [
+                      ...updatedUpdates[existingUpdateIndex].update_time,
+                      data.update_time,
+                    ],
+                  };
+                } else {
+                  // If no existing entry, add the new data
+                  updatedUpdates = [
+                    {
+                      ...data,
+                      id: `${data.event_id}-${Date.now()}-${data.table_updated}`,
+                      table_updated: [data.table_updated],
+                      update_time: [data.update_time],
+                    },
+                    ...updatedUpdates,
+                  ];
+                }
+    
+                // Keep only the last 50 updates
+                return updatedUpdates.slice(0, 50);
+              });
+            }
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
           }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
+        };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
 
-      ws.onclose = () => {
-        console.log('WebSocket connection closed');
-      };
+        ws.onclose = () => {
+          console.log('WebSocket connection closed');
+        };
 
-      return () => {
-        ws.close();
-      };
-  }, []);
+        return () => {
+          ws.close();
+        };
+      }, []);
 
   const sportsList: string[] = ["Soccer", "Tennis", "Basketball", "Hockey", "Volleyball", "Handball", "American Football", "Mixed Martial Arts", "Baseball"]; 
 
   const handleClick = async (event_id:string) => {
-    console.log('sending event_id', event_id);
     try {
-      const response = await fetch(`http://localhost:8000/receive-event?event_id=${event_id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}?event_id=${event_id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +114,6 @@ const OddsDashboard = () => {
           event_id: event_id,
           data: data
         })
-        console.log('Success:', data);
       }
     } catch (error) {
       console.error('Error sending event_id:', error);
@@ -212,7 +212,23 @@ const OddsDashboard = () => {
                                 </li>
                                 <li>
                                   <h4 className="font-semibold text-gray-700 mb-2">Spread:</h4>
-                                  <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
+                                  <div className="space-y-2">
+                                    {item.spread.map((sp: any, index: any) => (
+                                      <p 
+                                        key={index}
+                                        className="flex justify-between items-center p-4 bg-gray-100 rounded-lg shadow hover:bg-gray-200 transition"
+                                      >
+                                        <span className="font-semibold text-blue-600">{update.home_team}</span>
+                                        <span className="text-gray-700 text-base">{sp[0]}</span>
+                                        <span className="text-gray-500 text-base">{sp[1]}</span>
+                                        <span className="text-gray-700 text-lg">vs</span>
+                                        <span className="text-gray-500 text-base">{sp[2]}</span>
+                                        <span className="text-gray-700 text-base">{-1 * sp[0]}</span>
+                                        <span className="font-semibold text-blue-600">{update.away_team}</span>
+                                      </p>
+                                    ))}
+                                  </div>
+                                  <table className='min-w-full mt-3 border-collapse border border-gray-300 rounded-lg overflow-hidden'>
                                     <thead className='bg-green-200'>
                                       <tr>
                                         <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Handicap</th>

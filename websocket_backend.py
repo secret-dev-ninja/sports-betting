@@ -69,8 +69,6 @@ async def websocket_endpoint(websocket: WebSocket):
 async def receive_event(event_id: str):
     try:
         # Add the received event_id to the storage
-        print(f"Received event_id: {event_id}")
-
         conn = psycopg2.connect(**DB_CONFIG)
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = conn.cursor()

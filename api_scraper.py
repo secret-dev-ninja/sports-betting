@@ -2,12 +2,10 @@ import psycopg2
 import psycopg2.extras
 import requests
 from datetime import datetime
-import json
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 import os
 from dotenv import load_dotenv
 import logging
-from logging.handlers import RotatingFileHandler
 import sys
 import time
 from config import DB_CONFIG
@@ -134,11 +132,11 @@ class OddsCollector:
                 self.last_timestamp = last
 
         """Fetch odds data from Pinnacle API"""
-        url = os.getenv('PINNACLE_API_URL', "https://pinnacle-odds.p.rapidapi.com/kit/v1/markets")
+        url = os.getenv('PINNACLE_API_URL')
         
         headers = {
-            "x-rapidapi-host": os.getenv('PINNACLE_API_HOST', "pinnacle-odds.p.rapidapi.com"),
-            "x-rapidapi-key": os.getenv('PINNACLE_API_KEY', 'a8566af92cmsha8a9ac59b2a9cbcp11230fjsn67dc35effb7f')
+            "x-rapidapi-host": os.getenv('PINNACLE_API_HOST'),
+            "x-rapidapi-key": os.getenv('PINNACLE_API_KEY')
         }
         
         params = {
@@ -386,11 +384,11 @@ class OddsCollector:
             raise
 
 def get_sports_ids():
-    url = os.getenv('PINNACLE_API_SPORTS_URL', "https://pinnacle-odds.p.rapidapi.com/kit/v1/sports")
+    url = os.getenv('PINNACLE_API_SPORTS_URL')
         
     headers = {
-        "x-rapidapi-host": os.getenv('PINNACLE_API_HOST', "pinnacle-odds.p.rapidapi.com"),
-        "x-rapidapi-key": os.getenv('PINNACLE_API_KEY', 'a8566af92cmsha8a9ac59b2a9cbcp11230fjsn67dc35effb7f')
+        "x-rapidapi-host": os.getenv('PINNACLE_API_HOST'),
+        "x-rapidapi-key": os.getenv('PINNACLE_API_KEY')
     }
 
     logger.info("Requesting sports list information from Pinnacle API")
@@ -451,11 +449,9 @@ def store_sport_info(collector, sport_id):
         
         time.sleep(1)
 
-RATE_LIMIT = 5
-DELAY = 1 / RATE_LIMIT 
-MAX_CONCURRENT_REQUESTS = 3
+DELAY: float = 1 / float(os.getenv('RATE_LIMIT'))
 
-semaphore = multiprocessing.Semaphore(MAX_CONCURRENT_REQUESTS)
+semaphore = multiprocessing.Semaphore(int(os.getenv('MAX_CONCURRENT_REQUESTS')))
 
 def process_sport_id(collector, sport_id):
     with semaphore:
