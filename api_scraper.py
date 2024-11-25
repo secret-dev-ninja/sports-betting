@@ -124,12 +124,6 @@ class OddsCollector:
         self.last_timestamp = None
 
     def get_pinnacle_odds(self, sport_id: str) -> Optional[Dict]:
-        conn = self.db_manager.get_connection()
-
-        if not self.last_timestamp:
-            last = self.db_manager.get_last_call(conn, sport_id)
-            if last:
-                self.last_timestamp = last
 
         """Fetch odds data from Pinnacle API"""
         url = os.getenv('PINNACLE_API_MARKETS_URL')
@@ -150,25 +144,14 @@ class OddsCollector:
         logger.info(f"Making API request to Pinnacle{' with sport_id=' + str(sport_id) + ' since=' + str(self.last_timestamp) if self.last_timestamp else ''}")
         try:
             response = requests.get(url, headers=headers, params=params)
-            if response.status_code != 200:
-                del params['since']
-                response = requests.get(url, headers=headers, params=params)
                 
             response.raise_for_status()
             data = response.json()
-
-            if data['detail'] and 'since more' in data['detail']:
-                del params['since']
-                response = requests.get(url, headers=headers, params=params)
-                response.raise_for_status()
-                data = response.json()
             
             if 'last' in data:
                 self.last_timestamp = data['last']
                 logger.info('set last_timestamp:' + str(self.last_timestamp))
             
-            self.db_manager.insert_log(conn, sport_id, self.last_timestamp)
-
             return data
         
         except requests.exceptions.RequestException as e:
