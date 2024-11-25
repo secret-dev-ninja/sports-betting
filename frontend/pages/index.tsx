@@ -153,7 +153,7 @@ const OddsDashboard = () => {
                 activeTab === update.sport_id && (
                   <div 
                     key={index} 
-                    className="bg-gray-50 rounded-lg"
+                    className="bg-gray-50 rounded-lg hover:cursor-pointer"
                     onClick={() => handleClick(update.event_id)}
                   >
                     <div className='flex items-center justify-between p-3'>
@@ -178,7 +178,7 @@ const OddsDashboard = () => {
                     </div>
                     {selectedData && selectedData.event_id === update.event_id && (
                     <div className="mt-6 p-6 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg shadow-xl w-full max-w-4xl mx-auto">
-                      <h4 className="text-2xl font-semibold text-gray-800 mb-4">Additional Info</h4>
+                      <h4 className="text-2xl font-semibold text-gray-800 mb-4">Detail Info</h4>
                       <div className="text-sm text-gray-700 space-y-6">
                         {
                           selectedData.data.data.map((item: any, index: any) => (
@@ -187,48 +187,78 @@ const OddsDashboard = () => {
                               <ul className="list-disc pl-6 space-y-4">
                                 <li>
                                   <h4 className="font-semibold text-gray-700 mb-2">Money Line:</h4>
-                                  {
-                                    item.money_line.map((ml: any, index: any) => (
-                                      <div key={index} className="bg-white p-4 mt-1 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                          <p><strong>Home Odds:</strong> {ml[0]}</p>
-                                          <p><strong>Draw Odds:</strong> {ml[1]}</p>
-                                          <p><strong>Away Odds:</strong> {ml[2]}</p>
-                                          <p><strong>Max Bet:</strong> {ml[3]}</p>
-                                        </div>
-                                      </div>
-                                    ))
-                                  }
+                                  <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
+                                    <thead className='bg-blue-200'>
+                                      <tr>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Home Odds</th>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Draw Odds</th>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Away Odds</th>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Max Bet</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className='bg-white divide-y divide-gray-200'>
+                                    {
+                                      item.money_line.map((ml: any, index: any) => (
+                                        <tr key={index}>
+                                            <td className='py-2 px-4 text-sm text-gray-600'>{ml[0]}</td>
+                                            <td className='py-2 px-4 text-sm text-gray-600'>{ml[1]}</td>
+                                            <td className='py-2 px-4 text-sm text-gray-600'>{ml[2]}</td>
+                                            <td className='py-2 px-4 text-sm text-gray-600'>{ml[3]}</td>
+                                        </tr>
+                                      ))
+                                    }
+                                    </tbody>
+                                  </table>
                                 </li>
                                 <li>
                                   <h4 className="font-semibold text-gray-700 mb-2">Spread:</h4>
-                                  {
-                                    item.spread.map((sp: any, index: any) => (
-                                      <div key={index} className="bg-white p-4 mt-1 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                          <p><strong>Handicap:</strong> {sp[0]}</p>
-                                          <p><strong>Home Odds:</strong> {sp[1]}</p>
-                                          <p><strong>Away Odds:</strong> {sp[2]}</p>
-                                          <p><strong>Max Bet:</strong> {sp[3]}</p>
-                                        </div>
-                                      </div>
-                                    ))
-                                  }
+                                  <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
+                                    <thead className='bg-green-200'>
+                                      <tr>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Handicap</th>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Home Odds</th>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Draw Odds</th>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Away Odds</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className='bg-white divide-y divide-gray-200'>
+                                    {
+                                      item.spread.map((sp: any, index: any) => (
+                                        <tr key={index}>
+                                          <td className='py-2 px-4 text-sm text-gray-600'>{sp[0]}</td>
+                                          <td className='py-2 px-4 text-sm text-gray-600'>{sp[1]}</td>
+                                          <td className='py-2 px-4 text-sm text-gray-600'>{sp[2]}</td>
+                                          <td className='py-2 px-4 text-sm text-gray-600'>{sp[3]}</td>
+                                        </tr>
+                                      ))
+                                    }
+                                    </tbody>
+                                  </table>
                                 </li>
                                 <li>
                                   <h4 className="font-semibold text-gray-700 mb-2">Total:</h4>
-                                  {
-                                    item.total.map((tt: any, index: any) => (
-                                      <div key={index} className="bg-white p-4 mt-1 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                          <p><strong>Points:</strong> {tt[0]}</p>
-                                          <p><strong>Over Odds:</strong> {tt[1]}</p>
-                                          <p><strong>Under Odds:</strong> {tt[2]}</p>
-                                          <p><strong>Max Bet:</strong> {tt[3]}</p>
-                                        </div>
-                                      </div>
-                                    ))
-                                  }
+                                  <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
+                                    <thead className='bg-purple-200'>
+                                      <tr>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Points</th>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Over Odds</th>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Under Odds</th>
+                                        <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Max Bet</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className='bg-white divide-y divide-gray-200'>
+                                    {
+                                      item.total.map((tt: any, index: any) => (
+                                        <tr key={index}>
+                                          <td className='py-2 px-4 text-sm text-gray-600'>{tt[0]}</td>
+                                          <td className='py-2 px-4 text-sm text-gray-600'>{tt[1]}</td>
+                                          <td className='py-2 px-4 text-sm text-gray-600'>{tt[2]}</td>
+                                          <td className='py-2 px-4 text-sm text-gray-600'>{tt[3]}</td>
+                                        </tr>
+                                      ))
+                                    }
+                                    </tbody>
+                                  </table>
                                 </li>
                               </ul>
                             </div>

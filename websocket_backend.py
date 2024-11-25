@@ -100,14 +100,14 @@ async def receive_event(event_id: str):
             # Query to get the spread data for a specific period_id
             cursor.execute("""
                 SELECT handicap, home_odds, away_odds, max_bet FROM spreads
-                WHERE period_id = %s;
+                WHERE period_id = %s ORDER BY handicap ASC;
             """, (period,))
             spread = cursor.fetchall()
 
             # Query to get the total data for a specific period_id
             cursor.execute("""
                 SELECT points, over_odds, under_odds, max_bet FROM totals
-                WHERE period_id = %s;
+                WHERE period_id = %s ORDER BY points ASC;
             """, (period,))
             total = cursor.fetchall()
 
