@@ -132,7 +132,7 @@ class OddsCollector:
                 self.last_timestamp = last
 
         """Fetch odds data from Pinnacle API"""
-        url = os.getenv('PINNACLE_API_URL')
+        url = os.getenv('PINNACLE_API_MARKETS_URL')
         
         headers = {
             "x-rapidapi-host": os.getenv('PINNACLE_API_HOST'),
@@ -150,8 +150,18 @@ class OddsCollector:
         logger.info(f"Making API request to Pinnacle{' with sport_id=' + str(sport_id) + ' since=' + str(self.last_timestamp) if self.last_timestamp else ''}")
         try:
             response = requests.get(url, headers=headers, params=params)
+            if response.status_code != 200:
+                del params['since']
+                response = requests.get(url, headers=headers, params=params)
+                
             response.raise_for_status()
             data = response.json()
+
+            if data['detail'] and 'since more' in data['detail']:
+                del params['since']
+                response = requests.get(url, headers=headers, params=params)
+                response.raise_for_status()
+                data = response.json()
             
             if 'last' in data:
                 self.last_timestamp = data['last']
