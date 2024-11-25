@@ -1,46 +1,30 @@
 CREATE OR REPLACE FUNCTION notify_odds_update() RETURNS TRIGGER AS $$
-DECLARE
-    result_json JSON;
 BEGIN
-    -- Build the JSON structure
-    SELECT json_build_object(
-        'sport_id', e.sport_id,
-        'event_id', e.event_id,
-        'home_team', e.home_team,
-        'away_team', e.away_team,
-        'table_updated', TG_TABLE_NAME,
-        'update_time', CURRENT_TIMESTAMP,
-        'data', json_agg(
-            json_build_object(
-                p.period_id::text, -- Use period_id as the key
-                json_build_object(
-                    'total', (
-                        SELECT json_agg(row_to_json(tl))
-                        FROM totals tl
-                        WHERE tl.period_id = p.period_id
-                    ),
-                    'money_lines', (
-                        SELECT json_agg(row_to_json(ml))
-                        FROM money_lines ml
-                        WHERE ml.period_id = p.period_id
-                    ),
-                    'spread', (
-                        SELECT json_agg(row_to_json(sp))
-                        FROM spreads sp
-                        WHERE sp.period_id = p.period_id
-                    )
-                )
-            )
-        )
-    )
-    INTO result_json
-    FROM events e
-    JOIN periods p ON p.event_id = e.event_id
-    WHERE e.event_id = NEW.event_id;
-
-    -- Notify with the generated JSON
-    PERFORM pg_notify('odds_update', result_json::text);
-
+    -- For events table
+    IF TG_TABLE_NAME = 'events' THEN
+        PERFORM pg_notify('odds_update', json_build_object(
+            'sport_id', NEW.sport_id,
+            'event_id', NEW.event_id,
+            'home_team', NEW.home_team,
+            'away_team', NEW.away_team,
+            'table_updated', TG_TABLE_NAME,
+            'update_time', CURRENT_TIMESTAMP
+        )::text);
+    -- For other odds tables
+    ELSE 
+        PERFORM pg_notify('odds_update', json_build_object(
+            'sport_id', e.sport_id,
+            'event_id', e.event_id,
+            'home_team', e.home_team,
+            'away_team', e.away_team,
+            'table_updated', TG_TABLE_NAME,
+            'update_time', CURRENT_TIMESTAMP
+        )::text)
+        FROM periods p
+        JOIN events e ON e.event_id = p.event_id
+        WHERE p.period_id = NEW.period_id;
+    END IF;
+    
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
