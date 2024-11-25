@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import psycopg2
 import psycopg2.extras
@@ -19,7 +19,7 @@ app = FastAPI()
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["localhost:3000"],  # In production, replace with your frontend URL
+    allow_origins=["*"],  # In production, replace with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -66,6 +66,16 @@ async def websocket_endpoint(websocket: WebSocket):
             logger.error(e)
             break
 
+@app.get("/receive-event")
+async def receive_event(event_id: str):
+    try:
+        # Add the received event_id to the storage
+        print(f"Received event_id: {event_id}")
+
+        return {"message": "Event ID received successfully!", "event_id": event_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

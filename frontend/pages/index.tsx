@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
+import axios from 'axios';
 
 // Define the shape of the odds update data
 interface OddsUpdate {
@@ -9,14 +10,15 @@ interface OddsUpdate {
   event_id: string;
   home_team: string;
   away_team: string;
-  table_updated: string;
-  update_time: string;
+  table_updated: string[];
+  update_time: string[];
   id: string;
 }
 
 const OddsDashboard = () => {
       const [updates, setUpdates] = useState<OddsUpdate[]>([]);
       const [activeTab, setActiveTab] = useState<Number>(1);
+      const [selectedData, setSelectedData] = useState<any | null>(null);
 
       useEffect(() => {
       const ws = new WebSocket('ws://localhost:8000/ws');
@@ -26,13 +28,55 @@ const OddsDashboard = () => {
       };
 
       ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('data:', data);
-        
-        setUpdates(prev => [{
-          ...data,
-          id: `${data.event_id}-${Date.now()}-${data.table_updated}`
-        }, ...prev].slice(0, 50)); // Keep last 50 updates
+        try {
+          const data = JSON.parse(event.data);
+  
+          if (data && data.sport_id && data.event_id) {
+            setUpdates(prevUpdates => {
+              // Find the index of the existing update, if any
+              const existingUpdateIndex = prevUpdates.findIndex(
+                (update) =>
+                  update.sport_id === data.sport_id &&
+                  update.event_id === data.event_id &&
+                  update.home_team === data.home_team &&
+                  update.away_team === data.away_team
+              );
+  
+              let updatedUpdates = [...prevUpdates];
+  
+              if (existingUpdateIndex !== -1) {
+                // Merge the updates for the existing entry
+                updatedUpdates[existingUpdateIndex] = {
+                  ...updatedUpdates[existingUpdateIndex],
+                  table_updated: [
+                    ...updatedUpdates[existingUpdateIndex].table_updated,
+                    data.table_updated,
+                  ],
+                  update_time: [
+                    ...updatedUpdates[existingUpdateIndex].update_time,
+                    data.update_time,
+                  ],
+                };
+              } else {
+                // If no existing entry, add the new data
+                updatedUpdates = [
+                  {
+                    ...data,
+                    id: `${data.event_id}-${Date.now()}-${data.table_updated}`,
+                    table_updated: [data.table_updated],
+                    update_time: [data.update_time],
+                  },
+                  ...updatedUpdates,
+                ];
+              }
+  
+              // Keep only the last 50 updates
+              return updatedUpdates.slice(0, 50);
+            });
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
       };
 
       ws.onerror = (error) => {
@@ -49,6 +93,32 @@ const OddsDashboard = () => {
   }, []);
 
   const sportsList: string[] = ["Soccer", "Tennis", "Basketball", "Hockey", "Volleyball", "Handball", "American Football", "Mixed Martial Arts", "Baseball"]; 
+
+  const handleClick = async (event_id:string) => {
+    console.log('sending event_id', event_id);
+    try {
+      const response = await fetch(`http://localhost:8000/receive-event?event_id=${event_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+  
+      // Check if the response status is OK (200-299)
+      if (!response.ok) {
+        console.error('Error:', response.status, response.statusText);
+      } else {
+        const data = await response.json();
+        setSelectedData({
+          event_id: event_id,
+          data: data
+        })
+        console.log('Success:', data);
+      }
+    } catch (error) {
+      console.error('Error sending event_id:', error);
+    }
+  };
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -81,23 +151,39 @@ const OddsDashboard = () => {
             {updates.map(
               (update, index) =>
                 activeTab === update.sport_id && (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <div className="font-medium">
-                        {update.home_team} vs {update.away_team}
+                  <div 
+                    key={index} 
+                    className="bg-gray-50 rounded-lg"
+                    onClick={() => handleClick(update.event_id)}
+                  >
+                    <div className='flex items-center justify-between p-3'>
+                      <div className="flex-1 w-[70%]">
+                        <div className="font-medium">
+                          {update.home_team} vs {update.away_team}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Event ID: {update.event_id}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        Event ID: {update.event_id}
+                      <div className="flex w-[30%] items-center gap-3">
+                        <Badge variant="secondary">
+                          {update.table_updated.join(", ")} {/* Ensure join() works */}
+                        </Badge>
+                        <div className="text-sm text-gray-500">
+                          {update.update_time
+                            .map((time) => new Date(time).toLocaleTimeString())
+                            .join(", ") || 'Invalid time'}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="secondary">
-                        {update.table_updated}
-                      </Badge>
-                      <div className="text-sm text-gray-500">
-                        {new Date(update.update_time).toLocaleTimeString() || 'Invalid time'}
+                    {selectedData && selectedData.event_id === update.event_id && (
+                      <div className="mt-4 p-4 bg-white shadow rounded-lg w-full">
+                        <h4 className="text-lg font-medium">Additional Info</h4>
+                        <p className="text-sm text-gray-700">
+                          {JSON.stringify(selectedData.data)}
+                        </p>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )
             )}  
