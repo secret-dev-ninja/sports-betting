@@ -177,13 +177,67 @@ const OddsDashboard = () => {
                       </div>
                     </div>
                     {selectedData && selectedData.event_id === update.event_id && (
-                      <div className="mt-4 p-4 bg-white shadow rounded-lg w-full">
-                        <h4 className="text-lg font-medium">Additional Info</h4>
-                        <p className="text-sm text-gray-700">
-                          {JSON.stringify(selectedData.data)}
-                        </p>
+                    <div className="mt-6 p-6 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg shadow-xl w-full max-w-4xl mx-auto">
+                      <h4 className="text-2xl font-semibold text-gray-800 mb-4">Additional Info</h4>
+                      <div className="text-sm text-gray-700 space-y-6">
+                        {
+                          selectedData.data.data.map((item: any, index: any) => (
+                            <div key={index} className="border-t border-gray-200 pt-4">
+                              <h3 className="text-xl font-medium text-gray-800 mb-2">Period {index + 1}:</h3>
+                              <ul className="list-disc pl-6 space-y-4">
+                                <li>
+                                  <h4 className="font-semibold text-gray-700 mb-2">Money Line:</h4>
+                                  {
+                                    item.money_line.map((ml: any, index: any) => (
+                                      <div key={index} className="bg-white p-4 mt-1 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                          <p><strong>Home Odds:</strong> {ml[0]}</p>
+                                          <p><strong>Draw Odds:</strong> {ml[1]}</p>
+                                          <p><strong>Away Odds:</strong> {ml[2]}</p>
+                                          <p><strong>Max Bet:</strong> {ml[3]}</p>
+                                        </div>
+                                      </div>
+                                    ))
+                                  }
+                                </li>
+                                <li>
+                                  <h4 className="font-semibold text-gray-700 mb-2">Spread:</h4>
+                                  {
+                                    item.spread.map((sp: any, index: any) => (
+                                      <div key={index} className="bg-white p-4 mt-1 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                          <p><strong>Handicap:</strong> {sp[0]}</p>
+                                          <p><strong>Home Odds:</strong> {sp[1]}</p>
+                                          <p><strong>Away Odds:</strong> {sp[2]}</p>
+                                          <p><strong>Max Bet:</strong> {sp[3]}</p>
+                                        </div>
+                                      </div>
+                                    ))
+                                  }
+                                </li>
+                                <li>
+                                  <h4 className="font-semibold text-gray-700 mb-2">Total:</h4>
+                                  {
+                                    item.total.map((tt: any, index: any) => (
+                                      <div key={index} className="bg-white p-4 mt-1 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                          <p><strong>Points:</strong> {tt[0]}</p>
+                                          <p><strong>Over Odds:</strong> {tt[1]}</p>
+                                          <p><strong>Under Odds:</strong> {tt[2]}</p>
+                                          <p><strong>Max Bet:</strong> {tt[3]}</p>
+                                        </div>
+                                      </div>
+                                    ))
+                                  }
+                                </li>
+                              </ul>
+                            </div>
+                          ))
+                        }
                       </div>
-                    )}
+                    </div>
+                  )}
+
                   </div>
                 )
             )}  
