@@ -247,9 +247,10 @@ const OddsDashboard = () => {
                         {
                           memoizedSelectedData.data.data.map((item: any, index: any) => (
                             <div key={index} className="border-t border-gray-200 pt-4">
-                              <h3 className="text-xl font-medium text-gray-800 mb-2">Period {index + 1}:</h3>
-                              <ul className="list-disc pl-6 space-y-4">
-                                <li>
+                              {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 space-y-4">
+                                <h3 className="text-xl font-medium text-gray-800 mb-2">{index === 0 ? 'Full Game' : `Period ${index + 1}`}:</h3>
+                                {item.money_line.length !== 0 && 
+                                  <li>
                                   <h4 className="font-semibold text-gray-700 mb-2">Money Line:</h4>
                                   <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
                                     <thead className='bg-blue-200'>
@@ -273,23 +274,25 @@ const OddsDashboard = () => {
                                     }
                                     </tbody>
                                   </table>
-                                </li>
-                                <li>
+                                </li>}
+                                {item.spread.length !== 0 && <li>
                                   <h4 className="font-semibold text-gray-700 mb-2">Spread:</h4>
                                   <div className="space-y-2">
                                     {item.spread.map((sp: any, sIndex: any) => (
                                       <div key={sIndex}>
                                         <p 
-                                          className="flex justify-between items-center p-4 mb-3 bg-gray-100 rounded-lg shadow hover:bg-gray-200 transition"
+                                          className="flex justify-center items-center p-4 mb-3 gap-2 bg-gray-100 rounded-lg shadow hover:bg-gray-200 transition"
                                           onClick={(event) => handleGetChart(item.period_id[0], sp[0], event)}
                                         >
                                           <span className="font-semibold text-blue-600">{update.home_team}</span>
                                           <span className="text-gray-700 text-base">{sp[0]}</span>
+                                          <span className="text-gray-600 text-base"> @ </span>
                                           <span className="text-gray-500 text-base">{sp[1]}</span>
                                           <span className="text-gray-700 text-lg">vs</span>
-                                          <span className="text-gray-500 text-base">{sp[2]}</span>
-                                          <span className="text-gray-700 text-base">{-1 * sp[0]}</span>
-                                          <span className="font-semibold text-blue-600">{update.away_team}</span>
+                                          <span className="text-gray-500 text-base">{update.away_team}</span>
+                                          <span className="text-gray-500 text-base"> @ </span>
+                                          <span className="text-gray-700 text-base">{sp[2]}</span>
+                                          <span className="font-semibold text-blue-600">{sp[3]}</span>
                                         </p>
                                         {
                                           memoizedClickedData && (memoizedClickedData.period_id === item.period_id[0]) && (memoizedClickedData.hdp === sp[0]) && (
@@ -321,8 +324,8 @@ const OddsDashboard = () => {
                                     }
                                     </tbody>
                                   </table>
-                                </li>
-                                <li>
+                                </li>}
+                                {item.total.length !== 0 && <li>
                                   <h4 className="font-semibold text-gray-700 mb-2">Total:</h4>
                                   <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
                                     <thead className='bg-purple-200'>
@@ -346,8 +349,8 @@ const OddsDashboard = () => {
                                     }
                                     </tbody>
                                   </table>
-                                </li>
-                              </ul>
+                                </li>}
+                              </ul>}
                             </div>
                           ))
                         }
