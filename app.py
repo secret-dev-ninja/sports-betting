@@ -8,7 +8,7 @@ import logging
 from typing import List
 from dotenv import load_dotenv
 from config import DB_CONFIG
-import os
+from datetime import datetime
 
 load_dotenv()
 
@@ -90,22 +90,50 @@ async def receive_event(event_id: str):
         for period in periods:
             # Query to get the money_line data for a specific period_id
             cursor.execute("""
-                SELECT home_odds, draw_odds, away_odds, max_bet FROM money_lines
-                WHERE period_id = %s AND time = (SELECT MAX(time) FROM money_lines WHERE period_id = %s) ORDER BY period_id;
+                WITH MaxTime AS (
+                    SELECT period_id, MAX(time) AS max_time
+                    FROM money_lines
+                    WHERE period_id = %s
+                    GROUP BY period_id
+                )
+                SELECT ml.home_odds, ml.draw_odds, ml.away_odds, ml.max_bet
+                FROM money_lines ml
+                JOIN MaxTime mt
+                ON ml.period_id = mt.period_id AND ml.time = mt.max_time
+                WHERE ml.period_id = %s
+                ORDER BY ml.period_id;
             """, (period, period))
             money_line = cursor.fetchall()
 
             # Query to get the spread data for a specific period_id
             cursor.execute("""
-                SELECT handicap, home_odds, away_odds, max_bet FROM spreads
-                WHERE period_id = %s AND time = (SELECT MAX(time) FROM spreads WHERE period_id = %s) ORDER BY handicap ASC;
+                WITH MaxTime AS (
+                    SELECT MAX(time) AS max_time
+                    FROM spreads
+                    WHERE period_id = %s
+                )
+                SELECT handicap, home_odds, away_odds, max_bet
+                FROM spreads
+                JOIN MaxTime
+                ON spreads.time = MaxTime.max_time
+                WHERE spreads.period_id = %s
+                ORDER BY handicap ASC;
             """, (period, period))
             spread = cursor.fetchall()
 
             # Query to get the total data for a specific period_id
             cursor.execute("""
-                SELECT points, over_odds, under_odds, max_bet FROM totals
-                WHERE period_id = %s AND time = (SELECT MAX(time) FROM totals WHERE period_id = %s) ORDER BY points ASC;
+                WITH MaxTime AS (
+                    SELECT MAX(time) AS max_time
+                    FROM totals
+                    WHERE period_id = %s
+                )
+                SELECT points, over_odds, under_odds, max_bet
+                FROM totals t
+                JOIN MaxTime mt
+                ON t.time = mt.max_time
+                WHERE t.period_id = %s
+                ORDER BY t.points ASC;
             """, (period,period))
             total = cursor.fetchall()
 
@@ -120,7 +148,28 @@ async def receive_event(event_id: str):
         return {"message": "success", "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+@app.get("/receive-chart-event")
+async def receive_chart_event(period_id: str, hdp: float):
+    # Add the received event_id to the storage
+    conn = psycopg2.connect(**DB_CONFIG)
+    conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+    cursor = conn.cursor()
+
+    # Query to get period_ids by event_id
+    cursor.execute("""
+        SELECT home_odds, away_odds, time FROM spreads WHERE period_id = %s and handicap = %s ORDER BY time ASC LIMIT 100
+    """, (period_id, hdp))
+
+    spreads = cursor.fetchall()
+    result = [{
+        'time': spread[2].strftime('%m-%d %H:%M'),
+        'home': spread[0], 
+        'away': spread[1]
+    } for spread in spreads]
     
+    return {"message": "success", "data": result}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
