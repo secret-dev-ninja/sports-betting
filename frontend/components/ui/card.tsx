@@ -12,6 +12,9 @@ export function CardTitle({ children, className }: { children: React.ReactNode, 
   return <h3 className={`text-lg font-semibold ${className}`}>{children}</h3>
 }
 
-export function CardContent({ children }: { children: React.ReactNode }) {
-  return <div className="p-6 pt-0">{children}</div>
+export function CardContent({ children, variant = "default" }: { children: React.ReactNode, variant?:"default" | "child" }) {
+  const baseClasses = "pt-0";
+  const variantClasses = variant === "child" ? 'p-6' : ''; 
+
+  return <div className={`${baseClasses} ${variantClasses}`}>{children}</div>
 }
