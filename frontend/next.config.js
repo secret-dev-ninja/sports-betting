@@ -10,8 +10,10 @@ module.exports = {
     ignoreBuildErrors: true
   },
   env: {
-    REACT_APP_WS_URL: process.env.REACT_APP_WS_URL,
-    REACT_APP_API_URL: process.env.REACT_APP_API_URL,
-    REACT_APP_CHART_API_URL: process.env.REACT_APP_CHART_API_URL
+    NEXT_APP_WS_URL: process.env.NEXT_APP_WS_URL,
+    NEXT_APP_API_URL: process.env.NEXT_APP_API_URL,
+    NEXT_APP_CHART_API_URL: process.env.NEXT_APP_CHART_API_URL,
+    NEXT_APP_OPTS_API_URL: process.env.NEXT_APP_OPTS_API_URL,
+    NEXT_APP_EVENT_API_URL: process.env.NEXT_APP_EVENT_API_URL
   }
 }
