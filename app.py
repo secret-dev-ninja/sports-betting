@@ -36,9 +36,6 @@ class ConnectionManager:
         logger.info("WebSocket connection established.")
 
     def disconnect(self, websocket: WebSocket):
-        logger.info('websocket:' + str(websocket))
-        logger.info('active_connections:'+ str(self.active_connections))
-    
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
             logger.info("WebSocket connection closed.")
@@ -254,12 +251,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     data = json.loads(notify.payload)
                     await websocket.send_json(data)
                     await asyncio.sleep(0.1)
+
         except Exception as e:
             logger.error(e)
             await websocket.close()
             break
-        # finally:
-        #     manager.disconnect(websocket)
+        finally:
+            manager.disconnect(websocket)
 
 if __name__ == "__main__":
     import uvicorn

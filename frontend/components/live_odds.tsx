@@ -23,11 +23,7 @@ const LiveOddsDashboard = () => {
     useEffect(() => {
       const ws = new WebSocket(process.env.NEXT_APP_WS_URL);
       
-      ws.onopen = () => {
-        console.log('Connected to WebSocket');
-      };
-  
-      ws.onmessage = (event) => {
+      const handleMessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
   
@@ -71,17 +67,30 @@ const LiveOddsDashboard = () => {
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
         }
+      }
+
+      const handleOpen = () => {
+        console.log('Connected to WebSocket');
       };
-  
-      ws.onerror = (error) => {
+
+      const handleError = (error: Event) => {
         console.error('WebSocket error:', error);
       };
-  
-      ws.onclose = () => {
+    
+      const handleClose = () => {
         console.log('WebSocket connection closed');
       };
-  
+
+      ws.addEventListener('open', handleOpen);
+      ws.addEventListener('message', handleMessage);
+      ws.addEventListener('error', handleError);
+      ws.addEventListener('close', handleClose);
+
       return () => {
+        ws.removeEventListener('open', handleOpen);
+        ws.removeEventListener('message', handleMessage);
+        ws.removeEventListener('error', handleError);
+        ws.removeEventListener('close', handleClose);
         ws.close();
       };
     }, []);
@@ -202,114 +211,122 @@ const LiveOddsDashboard = () => {
                         <h4 className="text-2xl font-semibold text-gray-800 mb-4">Detail Info</h4>
                         <div className="text-sm text-gray-700 space-y-6">
                           {
-                            memoizedSelectedData.data.data.map((item: any, index: any) => (
-                              <div key={index} className="border-t border-gray-200 pt-4">
-                                {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 space-y-4">
-                                  <h3 className="text-xl font-medium text-gray-800 mb-2">{index === 0 ? 'Full Game' : `Period ${index + 1}`}:</h3>
-                                  {item.money_line.length !== 0 && 
-                                    <li>
-                                    <h4 className="font-semibold text-gray-700 mb-2">Money Line:</h4>
-                                    <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
-                                      <thead className='bg-blue-200'>
-                                        <tr>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Home Odds</th>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Draw Odds</th>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Away Odds</th>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Max Bet</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className='bg-white divide-y divide-gray-200'>
-                                      {
-                                        item.money_line.map((ml: any, mIndex: any) => (
-                                          <tr key={mIndex}>
-                                              <td className='py-2 px-4 text-sm text-gray-600'>{ml[0]}</td>
-                                              <td className='py-2 px-4 text-sm text-gray-600'>{ml[1]}</td>
-                                              <td className='py-2 px-4 text-sm text-gray-600'>{ml[2]}</td>
-                                              <td className='py-2 px-4 text-sm text-gray-600'>{ml[3]}</td>
+                            memoizedSelectedData?.data?.data.length > 0 &&  memoizedSelectedData.data.data.some((item: any) => 
+                              item.money_line.length || item.spread.length || item.total.length
+                            ) ? (
+                              memoizedSelectedData.data.data.map((item: any, index: any) => (
+                                <div key={index} className="border-t border-gray-200 pt-4">
+                                  {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 space-y-4">
+                                    <h3 className="text-xl font-medium text-gray-800 mb-2">{index === 0 ? 'Full Game' : `Period ${index + 1}`}:</h3>
+                                    {item.money_line.length !== 0 && 
+                                      <li>
+                                      <h4 className="font-semibold text-gray-700 mb-2">Money Line:</h4>
+                                      <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
+                                        <thead className='bg-blue-200'>
+                                          <tr>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Home Odds</th>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Draw Odds</th>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Away Odds</th>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Max Bet</th>
                                           </tr>
-                                        ))
-                                      }
-                                      </tbody>
-                                    </table>
-                                  </li>}
-                                  {item.spread.length !== 0 && <li>
-                                    <h4 className="font-semibold text-gray-700 mb-2">Spread:</h4>
-                                    <div className="space-y-2">
-                                      {item.spread.map((sp: any, sIndex: any) => (
-                                        <div key={sIndex}>
-                                          <p 
-                                            className="flex justify-center items-center p-4 mb-3 gap-2 bg-gray-100 rounded-lg shadow hover:bg-gray-200 transition"
-                                            onClick={(event) => handleGetChart(item.period_id[0], sp[0], event)}
-                                          >
-                                            <span className="font-semibold text-blue-600">{update.home_team}</span>
-                                            <span className="text-gray-700 text-base">{sp[0]}</span>
-                                            <span className="text-gray-600 text-base"> @ </span>
-                                            <span className="text-gray-500 text-base">{sp[1]}</span>
-                                            <span className="text-gray-700 text-lg">vs</span>
-                                            <span className="text-gray-500 text-base">{update.away_team}</span>
-                                            <span className="text-gray-500 text-base"> @ </span>
-                                            <span className="text-gray-700 text-base">{sp[2]}</span>
-                                            <span className="font-semibold text-blue-600">{sp[3]}</span>
-                                          </p>
-                                          {
-                                            memoizedClickedData && (memoizedClickedData.period_id === item.period_id[0]) && (memoizedClickedData.hdp === sp[0]) && (
-                                              <ChartComponent data={memoizedClickedData.data.data} />
-                                            )
-                                          }
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <table className='min-w-full mt-3 border-collapse border border-gray-300 rounded-lg overflow-hidden'>
-                                      <thead className='bg-green-200'>
-                                        <tr>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Handicap</th>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Home Odds</th>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Draw Odds</th>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Away Odds</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className='bg-white divide-y divide-gray-200'>
-                                      {
-                                        item.spread.map((sp: any, spIndex: any) => (
-                                          <tr key={spIndex}>
-                                            <td className='py-2 px-4 text-sm text-gray-600'>{sp[0]}</td>
-                                            <td className='py-2 px-4 text-sm text-gray-600'>{sp[1]}</td>
-                                            <td className='py-2 px-4 text-sm text-gray-600'>{sp[2]}</td>
-                                            <td className='py-2 px-4 text-sm text-gray-600'>{sp[3]}</td>
+                                        </thead>
+                                        <tbody className='bg-white divide-y divide-gray-200'>
+                                        {
+                                          item.money_line.map((ml: any, mIndex: any) => (
+                                            <tr key={mIndex}>
+                                                <td className='py-2 px-4 text-sm text-gray-600'>{ml[0]}</td>
+                                                <td className='py-2 px-4 text-sm text-gray-600'>{ml[1]}</td>
+                                                <td className='py-2 px-4 text-sm text-gray-600'>{ml[2]}</td>
+                                                <td className='py-2 px-4 text-sm text-gray-600'>{ml[3]}</td>
+                                            </tr>
+                                          ))
+                                        }
+                                        </tbody>
+                                      </table>
+                                    </li>}
+                                    {item.spread.length !== 0 && <li>
+                                      <h4 className="font-semibold text-gray-700 mb-2">Spread:</h4>
+                                      <div className="space-y-2">
+                                        {item.spread.map((sp: any, sIndex: any) => (
+                                          <div key={sIndex}>
+                                            <p 
+                                              className="flex justify-center items-center p-4 mb-3 gap-2 bg-gray-100 rounded-lg shadow hover:bg-gray-200 transition"
+                                              onClick={(event) => handleGetChart(item.period_id[0], sp[0], event)}
+                                            >
+                                              <span className="font-semibold text-blue-600">{update.home_team}</span>
+                                              <span className="text-gray-700 text-base">{sp[0]}</span>
+                                              <span className="text-gray-600 text-base"> @ </span>
+                                              <span className="text-gray-500 text-base">{sp[1]}</span>
+                                              <span className="text-gray-700 text-lg">vs</span>
+                                              <span className="text-gray-500 text-base">{update.away_team}</span>
+                                              <span className="text-gray-500 text-base"> @ </span>
+                                              <span className="text-gray-700 text-base">{sp[2]}</span>
+                                              <span className="font-semibold text-blue-600">{sp[3]}</span>
+                                            </p>
+                                            {
+                                              memoizedClickedData && (memoizedClickedData.period_id === item.period_id[0]) && (memoizedClickedData.hdp === sp[0]) && (
+                                                <ChartComponent data={memoizedClickedData.data.data} />
+                                              )
+                                            }
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <table className='min-w-full mt-3 border-collapse border border-gray-300 rounded-lg overflow-hidden'>
+                                        <thead className='bg-green-200'>
+                                          <tr>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Handicap</th>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Home Odds</th>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Draw Odds</th>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Away Odds</th>
                                           </tr>
-                                        ))
-                                      }
-                                      </tbody>
-                                    </table>
-                                  </li>}
-                                  {item.total.length !== 0 && <li>
-                                    <h4 className="font-semibold text-gray-700 mb-2">Total:</h4>
-                                    <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
-                                      <thead className='bg-purple-200'>
-                                        <tr>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Points</th>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Over Odds</th>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Under Odds</th>
-                                          <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Max Bet</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className='bg-white divide-y divide-gray-200'>
-                                      {
-                                        item.total.map((tt: any, tIndex: any) => (
-                                          <tr key={tIndex}>
-                                            <td className='py-2 px-4 text-sm text-gray-600'>{tt[0]}</td>
-                                            <td className='py-2 px-4 text-sm text-gray-600'>{tt[1]}</td>
-                                            <td className='py-2 px-4 text-sm text-gray-600'>{tt[2]}</td>
-                                            <td className='py-2 px-4 text-sm text-gray-600'>{tt[3]}</td>
+                                        </thead>
+                                        <tbody className='bg-white divide-y divide-gray-200'>
+                                        {
+                                          item.spread.map((sp: any, spIndex: any) => (
+                                            <tr key={spIndex}>
+                                              <td className='py-2 px-4 text-sm text-gray-600'>{sp[0]}</td>
+                                              <td className='py-2 px-4 text-sm text-gray-600'>{sp[1]}</td>
+                                              <td className='py-2 px-4 text-sm text-gray-600'>{sp[2]}</td>
+                                              <td className='py-2 px-4 text-sm text-gray-600'>{sp[3]}</td>
+                                            </tr>
+                                          ))
+                                        }
+                                        </tbody>
+                                      </table>
+                                    </li>}
+                                    {item.total.length !== 0 && <li>
+                                      <h4 className="font-semibold text-gray-700 mb-2">Total:</h4>
+                                      <table className='min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden'>
+                                        <thead className='bg-purple-200'>
+                                          <tr>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Points</th>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Over Odds</th>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Under Odds</th>
+                                            <th className='py-2 px-4 text-left text-sm font-semibold text-gray-700'>Max Bet</th>
                                           </tr>
-                                        ))
-                                      }
-                                      </tbody>
-                                    </table>
-                                  </li>}
-                                </ul>}
+                                        </thead>
+                                        <tbody className='bg-white divide-y divide-gray-200'>
+                                        {
+                                          item.total.map((tt: any, tIndex: any) => (
+                                            <tr key={tIndex}>
+                                              <td className='py-2 px-4 text-sm text-gray-600'>{tt[0]}</td>
+                                              <td className='py-2 px-4 text-sm text-gray-600'>{tt[1]}</td>
+                                              <td className='py-2 px-4 text-sm text-gray-600'>{tt[2]}</td>
+                                              <td className='py-2 px-4 text-sm text-gray-600'>{tt[3]}</td>
+                                            </tr>
+                                          ))
+                                        }
+                                        </tbody>
+                                      </table>
+                                    </li>}
+                                  </ul>}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-gray-500 text-sm text-center py-4">
+                                No data available for this event.
                               </div>
-                            ))
+                            ) 
                           }
                         </div>
                       </div>
