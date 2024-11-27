@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import ChartComponent from '@/components/ui/chart';
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import dotenv from "dotenv";
@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Define the shape of the odds update data
-interface OddsUpdate {
+interface LiveOddsUpdate {
   sport_id: number;
   event_id: string;
   home_team: string;
@@ -18,41 +18,16 @@ interface OddsUpdate {
   id: string;
 }
 
-// Define the type for the data
-interface ChartData {
-  time: string;  // Date-time as string
-  home: number; // First set of values (e.g., negative values)
-  away: number; // Second set of values (e.g., positive values)
-}
-
-interface ChartComponentProps {
-  data: ChartData[]; // The data prop must be an array of ChartData objects
-}
-
-const ChartComponent: React.FC<ChartComponentProps> = React.memo(({ data }) => {
-  return (
-    <div>
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="time" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-
-          {/* First line (Graph 1) */}
-          <Line type="monotone" dataKey="home" stroke="#8884d8" />
-
-          {/* Second line (Graph 2) */}
-          <Line type="monotone" dataKey="away" stroke="#82ca9d" />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-});
-
 const OddsDashboard = () => {
-  const [updates, setUpdates] = useState<OddsUpdate[]>([]);
+  return (
+    <>
+      <LiveOddsDashboard />
+    </>
+  )
+}
+
+const LiveOddsDashboard = () => {
+  const [updates, setUpdates] = useState<LiveOddsUpdate[]>([]);
   const [activeTab, setActiveTab] = useState<Number>(1);
   const [selectedData, setSelectedData] = useState<any | null>(null);
   const [clickedData, setClickedData] = useState<any | null>(null);
