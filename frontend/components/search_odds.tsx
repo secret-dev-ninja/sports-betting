@@ -143,7 +143,7 @@ const SearchOdds = () => {
   }, [clickedData?.period_id, clickedData?.hdp]);
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <Card className="mb-6 mt-5">
         <CardContent variant="child">
           <div className="space-y-4">
@@ -199,9 +199,13 @@ const SearchOdds = () => {
                             memoizedSelectedData.data.data.map((item: any, index: any) => (
                               <div key={index} className="border-t border-gray-200">
                                 {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 pt-4 space-y-4">
-                                  <h3 className="text-xl font-medium text-gray-800 mb-2">{index === 0 ? 'Full Game' : `Period ${index + 1}`}:</h3>
+                                  <h3 className="text-xl font-medium text-gray-800 mb-2">
+                                    {
+                                      index === 0 ? 'Full Game' : index === 1 ? '1st Half' : `Period ${index + 1}` 
+                                    }:
+                                  </h3>
                                   {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} /></li>}
-                                  {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} /></li>}
+                                  {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData}  isVisibleChild={false} /></li>}
                                   {item.total.length !== 0 && <li><Total item={item.total} /></li>}
                                 </ul>}
                               </div>

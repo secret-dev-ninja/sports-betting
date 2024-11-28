@@ -163,6 +163,7 @@ async def receive_chart_event(period_id: str, hdp: float):
 
 @app.get("/receive-options-event")
 async def receive_options_event(sport_id: int = None):
+    logger.info('starting receive-options...')
     if sport_id is None:
         url = os.getenv('PINNACLE_API_SPORTS_URL')
         
@@ -194,7 +195,7 @@ async def receive_options_event(sport_id: int = None):
         cursor.execute("""
             SELECT DISTINCT league_id, league_name
             FROM events
-            WHERE sport_id = %s;
+            WHERE sport_id = %s ORDER BY league_name ASC;
         """, (sport_id,))
 
         leagues = cursor.fetchall()
