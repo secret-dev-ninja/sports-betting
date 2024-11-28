@@ -83,7 +83,7 @@ async def receive_event(event_id: str):
                     WHERE period_id = %s
                     GROUP BY period_id
                 )
-                SELECT ml.home_odds, ml.draw_odds, ml.away_odds, ml.max_bet
+                SELECT ml.home_odds, ml.draw_odds, ml.away_odds, ml.max_bet, mt.max_time
                 FROM money_lines ml
                 JOIN MaxTime mt
                 ON ml.period_id = mt.period_id AND ml.time = mt.max_time
@@ -99,7 +99,7 @@ async def receive_event(event_id: str):
                     FROM spreads
                     WHERE period_id = %s
                 )
-                SELECT handicap, home_odds, away_odds, max_bet
+                SELECT handicap, home_odds, away_odds, max_bet, MaxTime.max_time
                 FROM spreads
                 JOIN MaxTime
                 ON spreads.time = MaxTime.max_time
@@ -115,7 +115,7 @@ async def receive_event(event_id: str):
                     FROM totals
                     WHERE period_id = %s
                 )
-                SELECT points, over_odds, under_odds, max_bet
+                SELECT points, over_odds, under_odds, max_bet, mt.max_time
                 FROM totals t
                 JOIN MaxTime mt
                 ON t.time = mt.max_time
@@ -146,7 +146,12 @@ async def receive_chart_event(period_id: str, hdp: float):
 
         # Query to get period_ids by event_id
         cursor.execute("""
-            SELECT home_odds, away_odds, time FROM spreads WHERE period_id = %s and handicap = %s ORDER BY time ASC LIMIT 20
+            SELECT home_odds, away_odds, time
+            FROM spreads
+            WHERE period_id = %s AND handicap = %s
+            ORDER BY time DESC
+            LIMIT 20
+            OFFSET 0
         """, (period_id, hdp))
 
         spreads = cursor.fetchall()
