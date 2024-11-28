@@ -220,7 +220,7 @@ const LiveOddsDashboard = () => {
                               <div key={index} className="border-t border-gray-200 pt-4">
                                 {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 space-y-4">
                                   <h3 className="text-xl font-medium text-gray-800 mb-2">{index === 0 ? 'Full Game' : `Period ${index - 1}`}:</h3>
-                                  {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} /></li>}
+                                  {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} search={true} /></li>}
                                   {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} /></li>}
                                   {item.total.length !== 0 && <li><Total item={item.total} /></li>}
                                 </ul>}

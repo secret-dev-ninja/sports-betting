@@ -2,7 +2,7 @@ import * as React from 'react';
 import ChartComponent from './chart';
 
 interface SpreadItem {
-  spread: [number, string, string, string][]; // Each 'spread' element is an array of strings
+  spread: [number, string, string, string, string][];
   period_id: string[];
 }
 
@@ -11,9 +11,10 @@ interface SpreadProps {
   update: { home_team: string; away_team: string };
   handleGetChart: (periodId: string, hdp: number, event: React.MouseEvent) => void;
   memoizedClickedData: { period_id: string; hdp: number; data: { data: any } } | null;
+  search?: boolean;
 }
 
-const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedClickedData }) => {
+const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedClickedData, search }) => {
   return (
     <div>
       <h4 className="font-semibold text-gray-700 mb-2">Spread:</h4>
@@ -27,30 +28,46 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
             <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Away Handicap</th>
             <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Away Odds</th>
             <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Limit</th>
+            {search && (
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">
+                Timestamp
+              </th>
+            )}
           </tr>
         </thead>
+        <tbody>
+          {item.spread.map((sp, sIndex) => (
+            <React.Fragment key={sIndex}>
+              <tr
+                className="bg-white hover:bg-gray-100 transition cursor-pointer"
+                onClick={(event) => handleGetChart(item.period_id[0], sp[0], event)}
+              >
+                <td className="py-2 px-4 text-sm text-gray-600">{update.home_team}</td>
+                <td className="py-2 px-4 text-sm text-gray-600">{sp[0]}</td>
+                <td className="py-2 px-4 text-sm text-gray-600">{sp[1]}</td>
+                <td className="py-2 px-4 text-sm text-gray-600">{update.away_team}</td>
+                <td className="py-2 px-4 text-sm text-gray-600">{-1 * sp[0]}</td>
+                <td className="py-2 px-4 text-sm text-gray-600">{sp[2]}</td>
+                <td className="py-2 px-4 text-sm text-gray-600">{sp[3]}</td>
+                {search && (
+                  <td className="py-2 px-4 text-sm text-gray-600">
+                    {new Date(sp[4]).toISOString().slice(0, 19).replace('T', ' ')}
+                  </td>
+                )}
+              </tr>
+              {memoizedClickedData &&
+                memoizedClickedData.period_id === item.period_id[0] &&
+                memoizedClickedData.hdp === sp[0] && (
+                  <tr>
+                    <td colSpan={8}>
+                      <ChartComponent data={memoizedClickedData.data.data} />
+                    </td>
+                  </tr>
+                )}
+            </React.Fragment>
+          ))}
+        </tbody>
       </table>
-      {
-      item.spread.map((sp, sIndex) => (
-        <div key={sIndex}>
-          <p
-            className="flex justify-between items-center p-1 border-b-2 bg-white rounded-sm shadow hover:bg-gray-200 transition"
-            onClick={(event) => handleGetChart(item.period_id[0], sp[0], event)} // sp[0] is a string here
-          >
-            <span className="py-2 px-4 text-sm text-gray-600">{update.home_team}</span>
-            <span className="py-2 px-4 text-sm text-gray-600">{sp[0]}</span>
-            <span className="py-2 px-4 text-sm text-gray-600">{sp[1]}</span>
-            <span className="py-2 px-4 text-sm text-gray-600">{update.away_team}</span>
-            <span className="py-2 px-4 text-sm text-gray-600">{-1 * sp[0]}</span>
-            <span className="py-2 px-4 text-sm text-gray-600">{sp[2]}</span>
-            <span className="py-2 px-4 text-sm text-gray-600">{sp[3]}</span>
-          </p>
-          {memoizedClickedData && memoizedClickedData.period_id === item.period_id[0] && memoizedClickedData.hdp === sp[0] && (
-            <ChartComponent data={memoizedClickedData.data.data} />
-          )}
-        </div>
-        ))
-      }
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-const Total = ({ item }: { item: any[] }) => {
+const Total = ({ item, search }: { item: any[], search?: boolean }) => {
   return (
     <div>
       <h4 className="font-semibold text-gray-700 mb-2">Total:</h4>
@@ -11,6 +11,11 @@ const Total = ({ item }: { item: any[] }) => {
             <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Over Odds</th>
             <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Under Odds</th>
             <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Max Bet</th>
+            {search && (
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">
+                Timestamp
+              </th>
+            )}
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -20,6 +25,7 @@ const Total = ({ item }: { item: any[] }) => {
               <td className="py-2 px-4 text-sm text-gray-600">{tt[1]}</td>
               <td className="py-2 px-4 text-sm text-gray-600">{tt[2]}</td>
               <td className="py-2 px-4 text-sm text-gray-600">{tt[3]}</td>
+              { search ? <td className="py-2 px-4 text-sm text-gray-600">{new Date(tt[4]).toISOString().slice(0, 19).replace('T', ' ')}</td>: '' }
             </tr>
           ))}
         </tbody>
