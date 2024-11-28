@@ -205,7 +205,7 @@ const SearchOdds = () => {
                                     }:
                                   </h3>
                                   {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} /></li>}
-                                  {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData}  isVisibleChild={false} /></li>}
+                                  {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} /></li>}
                                   {item.total.length !== 0 && <li><Total item={item.total} /></li>}
                                 </ul>}
                               </div>

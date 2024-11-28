@@ -14,7 +14,7 @@ data: ChartData[]; // The data prop must be an array of ChartData objects
 
 const ChartComponent: React.FC<ChartComponentProps> = React.memo(({ data }) => {
     return (
-        <div>
+        <div className="mt-3">
         <ResponsiveContainer width="100%" height={400}>
             <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
