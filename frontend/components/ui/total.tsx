@@ -1,14 +1,6 @@
 import * as React from 'react';
 
-interface TotalItem {
-  total: [string, string, string, string][]; // Each 'total' element is an array of strings
-}
-
-interface TotalProps {
-  item: TotalItem;
-}
-
-const Total: React.FC<TotalProps> = ({ item }) => {
+const Total = ({ item }: { item: any[] }) => {
   return (
     <div>
       <h4 className="font-semibold text-gray-700 mb-2">Total:</h4>
@@ -22,7 +14,7 @@ const Total: React.FC<TotalProps> = ({ item }) => {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {item.total.map((tt, tIndex) => (
+          {item.map((tt, tIndex) => (
             <tr key={tIndex}>
               <td className="py-2 px-4 text-sm text-gray-600">{tt[0]}</td>
               <td className="py-2 px-4 text-sm text-gray-600">{tt[1]}</td>

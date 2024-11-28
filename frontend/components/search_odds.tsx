@@ -201,7 +201,7 @@ const SearchOdds = () => {
                                 {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 pt-4 space-y-4">
                                   <h3 className="text-xl font-medium text-gray-800 mb-2">{index === 0 ? 'Full Game' : `Period ${index + 1}`}:</h3>
                                   {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} /></li>}
-                                  {item.spread.length !== 0 && <li><Spread item={item.spread} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} /></li>}
+                                  {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} /></li>}
                                   {item.total.length !== 0 && <li><Total item={item.total} /></li>}
                                 </ul>}
                               </div>
