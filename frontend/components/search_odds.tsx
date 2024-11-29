@@ -21,13 +21,17 @@ const SearchOdds = () => {
   const [sportsOpts, setSportsOpts] = useState<DropdownOption[]>([]);
   const [sports, setSports] = useState<number>();
   const [leagueOpts, setLeaguesOps] = useState<DropdownOption[]>([]);
+  const [league, setLeague] = useState<number>();
+  const [teamOpts, setTeamOpts] = useState<DropdownOption[]>([]);
   const [updates, setUpdates] = useState<Update[]>([]);
   const [selectedData, setSelectedData] = useState<any | null>(null);
   const [clickedData, setClickedData] = useState<any | null>(null);
 
-  const fetchOpts = async (sport_id?: number) => {
+  const fetchOpts = async (sport_id?: number, league_id?: number) => {
     try {
-      const url = sport_id ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_id=${sport_id}` : `${process.env.NEXT_APP_OPTS_API_URL}`;
+      const url = sport_id && league_id ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_id=${sport_id}&league_id=${league_id}` : 
+                  (sport_id ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_id=${sport_id}` : `${process.env.NEXT_APP_OPTS_API_URL}`);
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -39,7 +43,7 @@ const SearchOdds = () => {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
-        sport_id ? setLeaguesOps(data) : setSportsOpts(data);
+        sport_id && league_id ? setTeamOpts(data) : (sport_id ? setLeaguesOps(data) : setSportsOpts(data));
       }
     }
     catch(e) {
@@ -58,6 +62,8 @@ const SearchOdds = () => {
   };
 
   const handleDropdownLeagueSelect = async (value: number) => {
+    setLeague(value);
+    fetchOpts(sports, value);
     try {
       const response = await fetch(`${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${value}`, {
         method: 'GET',
@@ -66,6 +72,27 @@ const SearchOdds = () => {
         }
       });
       // Check if the response status is OK (200-299)
+      if (!response.ok) {
+        console.error('Error:', response.status, response.statusText);
+      } else {
+        const data = await response.json();
+        console.log('data:', data);
+        setUpdates(data);
+      }
+    }
+    catch(e) {
+      console.log(e);
+    }
+  };
+
+  const handleDropdownTeamSelect = async (team: number) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_id=${team}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       if (!response.ok) {
         console.error('Error:', response.status, response.statusText);
       } else {
@@ -148,7 +175,7 @@ const SearchOdds = () => {
         <CardContent variant="child">
           <div className="space-y-4">
             <div className="flex items-center justify-start mb-4 gap-4">
-              {/* Modern Dropdown 1 */}
+              {/* Modern Dropdown Sports */}
               <SearchableDropdown
                 options={sportsOpts}
                 placeholder="Select Sports option"
@@ -156,11 +183,18 @@ const SearchOdds = () => {
                 viewCount={10}
               />
 
-              {/* Modern Dropdown 2 */}
+              {/* Modern Dropdown Leagues */}
               <SearchableDropdown
                 options={leagueOpts}
                 placeholder="Select League option"
                 onSelect={handleDropdownLeagueSelect}
+                viewCount={10}
+              />
+
+              <SearchableDropdown
+                options={teamOpts}
+                placeholder="Select Team option"
+                onSelect={handleDropdownTeamSelect}
                 viewCount={10}
               />
             </div>

@@ -167,9 +167,8 @@ async def receive_chart_event(period_id: str, hdp: float):
         raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
 
 @app.get("/receive-options-event")
-async def receive_options_event(sport_id: int = None):
-    logger.info('starting receive-options...')
-    if sport_id is None:
+async def receive_options_event(sport_id: int = None, league_id: int = None):
+    if sport_id is None and league_id is None:
         url = os.getenv('PINNACLE_API_SPORTS_URL')
         
         headers = {
@@ -192,7 +191,7 @@ async def receive_options_event(sport_id: int = None):
                 if hasattr(e, 'response') and e.response is not None:
                     logger.error(f"Response content: {e.response.text}")
                 return None
-    else:
+    elif sport_id is not None and league_id is None:
         conn = psycopg2.connect(**DB_CONFIG)
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = conn.cursor()
@@ -208,7 +207,36 @@ async def receive_options_event(sport_id: int = None):
             'value': league[0],
             'label': league[1], 
         } for league in leagues]
-        
+    
+        return result
+    elif sport_id is not None and league_id is not None:
+        conn = psycopg2.connect(**DB_CONFIG)
+        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        cursor = conn.cursor()
+
+        logger.info('starting receive-options...%s, %s', sport_id, league_id)
+
+        cursor.execute("""
+        SELECT DISTINCT team
+        FROM (
+            SELECT home_team AS team
+            FROM events
+            WHERE sport_id = %s
+            AND league_id = %s
+            UNION ALL
+            SELECT away_team AS team
+            FROM events
+            WHERE sport_id = %s
+            AND league_id = %s
+        ) AS combined_teams ORDER BY team ASC;
+        """, (sport_id, league_id, sport_id, league_id))
+
+        teams = cursor.fetchall()
+        result = [{
+            'value': team[0],
+            'label': team[0],
+        } for team in teams]
+
         return result
 
 @app.get("/receive-event-info")
