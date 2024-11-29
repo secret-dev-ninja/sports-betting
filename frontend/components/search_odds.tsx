@@ -87,7 +87,7 @@ const SearchOdds = () => {
 
   const handleDropdownTeamSelect = async (team: number) => {
     try {
-      const response = await fetch(`${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_id=${team}`, {
+      const response = await fetch(`${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_name=${team}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

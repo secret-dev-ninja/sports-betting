@@ -240,31 +240,62 @@ async def receive_options_event(sport_id: int = None, league_id: int = None):
         return result
 
 @app.get("/receive-event-info")
-async def receive_event_info(sport_id: int, league_id: int):
+async def receive_event_info(sport_id: int, league_id: int, team_name: str = None):
     conn = psycopg2.connect(**DB_CONFIG)
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT event_id, home_team, away_team, last_updated
-        FROM events
-        WHERE sport_id = %s AND league_id = %s
-        ORDER BY last_updated DESC
-        LIMIT 20;
-    """, (sport_id, league_id))
+    if team_name is None:
+        conn = psycopg2.connect(**DB_CONFIG)
+        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        cursor = conn.cursor()
 
-    events = cursor.fetchall()
-    
-    result = [
-        {
-            'event_id': event[0],
-            'home_team': event[1],
-            'away_team': event[2],
-            'updated_at': event[3]
-        } for event in events
-    ]
-       
-    return result
+        cursor.execute("""
+            SELECT event_id, home_team, away_team, last_updated
+            FROM events
+            WHERE sport_id = %s AND league_id = %s
+            ORDER BY last_updated DESC
+            LIMIT 20;
+        """, (sport_id, league_id))
+
+        events = cursor.fetchall()
+        
+        result = [
+            {
+                'event_id': event[0],
+                'home_team': event[1],
+                'away_team': event[2],
+                'updated_at': event[3]
+            } for event in events
+        ]
+        
+        return result
+    else:
+        conn = psycopg2.connect(**DB_CONFIG)
+        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT event_id, home_team, away_team, last_updated
+            FROM events
+            WHERE sport_id = %s
+              AND league_id = %s
+              AND (home_team = %s OR away_team = %s)
+            ORDER BY starts DESC;
+        """, (sport_id, league_id, team_name, team_name))
+
+        events = cursor.fetchall()
+        
+        result = [
+            {
+                'event_id': event[0],
+                'home_team': event[1],
+                'away_team': event[2],
+                'updated_at': event[3]
+            } for event in events
+        ]
+        
+        return result
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
