@@ -48,7 +48,16 @@ const SearchOdds = () => {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
-        sport_id && league_id ? setTeamOpts(data) : sport_id ? setLeaguesOps(data) : setSportsOpts(data);
+        if (sport_id && league_id) {
+          setTeamOpts(data);
+        }
+        else if (sport_id) {
+          setLeaguesOps(data.leagues);
+          setTeamOpts(data.teams);
+        }
+        else {
+          setSportsOpts(data);
+        }
       }
     } catch (e) {
       console.log(e);
@@ -64,6 +73,7 @@ const SearchOdds = () => {
     fetchOpts(value);
     setUpdates([]);
     handlePageChange(1);
+    setLeague(0);
   };
 
   const handleDropdownLeagueSelect = async (value: number) => {
@@ -94,9 +104,12 @@ const SearchOdds = () => {
   const handleDropdownTeamSelect = async (team: number) => {
     handlePageChange(1);
 
+    const url = league ? 
+                `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_name=${team}` : 
+                `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&team_name=${team}`;
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_name=${team}`,
+        url,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },

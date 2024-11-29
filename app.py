@@ -203,12 +203,34 @@ async def receive_options_event(sport_id: int = None, league_id: int = None):
         """, (sport_id,))
 
         leagues = cursor.fetchall()
-        result = [{
+        leaguesOpts = [{
             'value': league[0],
             'label': league[1], 
         } for league in leagues]
+
+        cursor.execute("""
+        SELECT DISTINCT team
+        FROM (
+            SELECT home_team AS team
+            FROM events
+            WHERE sport_id = %s
+            UNION ALL
+            SELECT away_team AS team
+            FROM events
+            WHERE sport_id = %s
+        ) AS combined_teams ORDER BY team ASC;
+        """, (sport_id, sport_id))
     
-        return result
+        teams = cursor.fetchall()
+        teamsOpts = [{
+            'value': team[0],
+            'label': team[0],
+        } for team in teams]
+
+        return {
+            'leagues': leaguesOpts,
+            'teams': teamsOpts
+        }
     elif sport_id is not None and league_id is not None:
         conn = psycopg2.connect(**DB_CONFIG)
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
@@ -240,7 +262,7 @@ async def receive_options_event(sport_id: int = None, league_id: int = None):
         return result
 
 @app.get("/receive-event-info")
-async def receive_event_info(sport_id: int, league_id: int, team_name: str = None):
+async def receive_event_info(sport_id: int, league_id: int = None, team_name: str = None):
     conn = psycopg2.connect(**DB_CONFIG)
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     cursor = conn.cursor()
@@ -271,6 +293,32 @@ async def receive_event_info(sport_id: int, league_id: int, team_name: str = Non
         ]
         
         return result
+    elif league_id is None and team_name is not None:
+        conn = psycopg2.connect(**DB_CONFIG)
+        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT event_id, home_team, away_team, starts
+            FROM events
+            WHERE sport_id = %s
+                AND (home_team = %s OR away_team = %s)
+                AND event_type = 'prematch'
+            ORDER BY starts DESC;
+        """, (sport_id, team_name, team_name))
+
+        events = cursor.fetchall()
+        result = [
+            {
+                'event_id': event[0],
+                'home_team': event[1],
+                'away_team': event[2],
+                'updated_at': event[3]
+            } for event in events
+        ]
+        
+        return result
+    
     else:
         conn = psycopg2.connect(**DB_CONFIG)
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
