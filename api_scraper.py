@@ -457,7 +457,7 @@ def main():
     sport_ids = get_sports_ids()
 
     logger.info("Starting multiprocessing...")
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(processes=9) as pool:
         pool.starmap(process_sport_id, [(collector, sport_id) for sport_id in sport_ids])
     
 if __name__ == "__main__":
