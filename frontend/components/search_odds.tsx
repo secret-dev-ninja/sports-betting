@@ -251,18 +251,16 @@ const SearchOdds = () => {
                         ) ? (
                           memoizedSelectedData.data.data.map((item: any, index: any) => (
                             <div key={index} className="border-t border-gray-200">
-                              {(item.money_line.length !== 0 ||
-                                item.spread.length !== 0 ||
-                                item.total.length !== 0) && (
-                                <div className="space-y-3 py-4">
-                                  <h3 className="text-lg font-semibold text-gray-800">
-                                    {item.game_period_label}
-                                  </h3>
-                                  <MoneyLineTable data={item.money_line} />
-                                  <Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} search={true} />
-                                  <Total item={item.total} search={true} />
-                                </div>
-                              )}
+                              {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 pt-4 space-y-4">
+                                <h3 className="text-xl font-medium text-gray-800 mb-2">
+                                  {
+                                    index === 0 ? 'Full Game' : index === 1 ? '1st Half' : `Period ${index + 1}` 
+                                  }:
+                                </h3>
+                                {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} search={true} /></li>}
+                                {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} search={true} /></li>}
+                                {item.total.length !== 0 && <li><Total item={item.total} search={true} /></li>}
+                              </ul>}
                             </div>
                           ))
                         ) : (
