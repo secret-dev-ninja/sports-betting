@@ -251,11 +251,10 @@ async def receive_event_info(sport_id: int, league_id: int, team_name: str = Non
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, last_updated
+            SELECT event_id, home_team, away_team, starts
             FROM events
             WHERE sport_id = %s AND league_id = %s
-            ORDER BY last_updated DESC
-            LIMIT 20;
+            ORDER BY starts DESC;
         """, (sport_id, league_id))
 
         events = cursor.fetchall()
@@ -276,7 +275,7 @@ async def receive_event_info(sport_id: int, league_id: int, team_name: str = Non
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, last_updated
+            SELECT event_id, home_team, away_team, starts
             FROM events
             WHERE sport_id = %s
               AND league_id = %s

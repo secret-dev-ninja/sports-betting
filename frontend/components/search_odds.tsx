@@ -6,9 +6,9 @@ import Spread from './ui/spread';
 import Total from './ui/total';
 
 interface DropdownOption {
-  value: number, 
-  label: string
-};
+  value: number;
+  label: string;
+}
 
 interface Update {
   event_id: string;
@@ -26,30 +26,34 @@ const SearchOdds = () => {
   const [updates, setUpdates] = useState<Update[]>([]);
   const [selectedData, setSelectedData] = useState<any | null>(null);
   const [clickedData, setClickedData] = useState<any | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const fetchOpts = async (sport_id?: number, league_id?: number) => {
     try {
-      const url = sport_id && league_id ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_id=${sport_id}&league_id=${league_id}` : 
-                  (sport_id ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_id=${sport_id}` : `${process.env.NEXT_APP_OPTS_API_URL}`);
+      const url = sport_id && league_id
+        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_id=${sport_id}&league_id=${league_id}`
+        : sport_id
+        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_id=${sport_id}`
+        : `${process.env.NEXT_APP_OPTS_API_URL}`;
 
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        headers: { 'Content-Type': 'application/json' },
       });
-      // Check if the response status is OK (200-299)
+
       if (!response.ok) {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
-        sport_id && league_id ? setTeamOpts(data) : (sport_id ? setLeaguesOps(data) : setSportsOpts(data));
+        sport_id && league_id ? setTeamOpts(data) : sport_id ? setLeaguesOps(data) : setSportsOpts(data);
       }
-    }
-    catch(e) {
+    } catch (e) {
       console.log(e);
     }
-  }
+  };
 
   useEffect(() => {
     fetchOpts();
@@ -59,19 +63,22 @@ const SearchOdds = () => {
     setSports(value);
     fetchOpts(value);
     setUpdates([]);
+    handlePageChange(1);
   };
 
   const handleDropdownLeagueSelect = async (value: number) => {
     setLeague(value);
     fetchOpts(sports, value);
+    handlePageChange(1);
     try {
-      const response = await fetch(`${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${value}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${value}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
         }
-      });
-      // Check if the response status is OK (200-299)
+      );
+
       if (!response.ok) {
         console.error('Error:', response.status, response.statusText);
       } else {
@@ -79,20 +86,22 @@ const SearchOdds = () => {
         console.log('data:', data);
         setUpdates(data);
       }
-    }
-    catch(e) {
+    } catch (e) {
       console.log(e);
     }
   };
 
   const handleDropdownTeamSelect = async (team: number) => {
+    handlePageChange(1);
+
     try {
-      const response = await fetch(`${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_name=${team}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_name=${team}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
         }
-      });
+      );
       if (!response.ok) {
         console.error('Error:', response.status, response.statusText);
       } else {
@@ -100,51 +109,50 @@ const SearchOdds = () => {
         console.log('data:', data);
         setUpdates(data);
       }
-    }
-    catch(e) {
+    } catch (e) {
       console.log(e);
     }
   };
 
-  const handleGetDetailInfo = async (event_id:string, event: React.MouseEvent) => {
+  const handleGetDetailInfo = async (event_id: string, event: React.MouseEvent) => {
     event.stopPropagation();
 
     try {
-      const response = await fetch(`${process.env.NEXT_APP_API_URL}?event_id=${event_id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.NEXT_APP_API_URL}?event_id=${event_id}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
         }
-      });
-  
-      // Check if the response status is OK (200-299)
+      );
+
       if (!response.ok) {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
         setSelectedData({
           event_id: event_id,
-          data: data
-        })
+          data: data,
+        });
       }
     } catch (error) {
       console.error('Error sending event_id:', error);
     }
   };
 
-  const handleGetChart = async(period_id: string, hdp: number, event: React.MouseEvent) => {
+  const handleGetChart = async (period_id: string, hdp: number, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
     try {
-      const response = await fetch(`${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&hdp=${hdp}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&hdp=${hdp}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
         }
-      });
+      );
 
-      // Check if the response status is OK (200-299)
       if (!response.ok) {
         console.error('Error:', response.status, response.statusText);
       } else {
@@ -152,22 +160,36 @@ const SearchOdds = () => {
         setClickedData({
           period_id: period_id,
           hdp: hdp,
-          data: data
-        })
+          data: data,
+        });
       }
+    } catch (error) {
+      console.error('Error getting chart info: ', error);
     }
-    catch (error) {
-      console.error('Error getting chart info: ', error)
-    }
-  }
+  };
 
   const memoizedSelectedData = useMemo(() => {
     return selectedData;
   }, [selectedData?.event_id]);
-  
+
   const memoizedClickedData = useMemo(() => {
     return clickedData;
   }, [clickedData?.period_id, clickedData?.hdp]);
+
+  // Paginate updates
+  const paginatedUpdates = useMemo(() => {
+    const startIdx = (currentPage - 1) * pageSize;
+    return updates.slice(startIdx, startIdx + pageSize);
+  }, [updates, currentPage]);
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  // Generate page numbers for pagination
+  const totalPages = Math.ceil(updates.length / pageSize);
+  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -175,22 +197,18 @@ const SearchOdds = () => {
         <CardContent variant="child">
           <div className="space-y-4">
             <div className="flex items-center justify-start mb-4 gap-4">
-              {/* Modern Dropdown Sports */}
               <SearchableDropdown
                 options={sportsOpts}
                 placeholder="Select Sports option"
                 onSelect={handleDropdownSportsSelect}
                 viewCount={10}
               />
-
-              {/* Modern Dropdown Leagues */}
               <SearchableDropdown
                 options={leagueOpts}
                 placeholder="Select League option"
                 onSelect={handleDropdownLeagueSelect}
                 viewCount={10}
               />
-
               <SearchableDropdown
                 options={teamOpts}
                 placeholder="Select Team option"
@@ -199,63 +217,89 @@ const SearchOdds = () => {
               />
             </div>
 
-            {/* Additional Content */}
             <div className="rounded-lg hover:cursor-pointer">
-            {
-              updates.map((update) => (
-                <div 
-                    key={update.event_id} 
-                    className="bg-gray-50 mt-3 rounded-lg hover:cursor-pointer"
-                    onClick={(event) => handleGetDetailInfo(update.event_id, event)}
-                  >
-                    <div className='flex items-center justify-between p-3'>
-                      <div className="flex-1 w-[70%]">
-                        <div className="font-medium">
-                          {update.home_team} vs {update.away_team}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Event ID: {update.event_id}
-                        </div>
+              {paginatedUpdates.map((update) => (
+                <div
+                  key={update.event_id}
+                  className="bg-gray-50 mt-3 rounded-lg hover:cursor-pointer"
+                  onClick={(event) => handleGetDetailInfo(update.event_id, event)}
+                >
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex-1 w-[70%]">
+                      <div className="font-medium">
+                        {update.home_team} vs {update.away_team}
                       </div>
-                      <div className="flex w-[30%] items-center gap-3">
-                        <div className="text-sm text-gray-500">
-                          {new Date(update.updated_at).toISOString().slice(0, 19)}
-                        </div>
+                      <div className="text-sm text-gray-500">
+                        Event ID: {update.event_id}
                       </div>
                     </div>
-                    {memoizedSelectedData && memoizedSelectedData.event_id === update.event_id && (
+                    <div className="flex w-[30%] items-center gap-3">
+                      <div className="text-sm text-gray-500">
+                        {new Date(update.updated_at).toISOString().slice(0, 19)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {memoizedSelectedData && memoizedSelectedData.event_id === update.event_id && (
                     <div className="mt-6 p-6 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg shadow-xl w-full max-w-4xl mx-auto">
                       <h4 className="text-2xl font-semibold text-gray-800 mb-4">Detailed Information</h4>
                       <div className="text-sm text-gray-700 space-y-6">
-                        { memoizedSelectedData?.data?.data.length > 0 &&  memoizedSelectedData.data.data.some((item: any) => 
+                        {memoizedSelectedData?.data?.data.length > 0 &&
+                        memoizedSelectedData.data.data.some(
+                          (item: any) =>
                             item.money_line.length || item.spread.length || item.total.length
-                          ) ? (
-                            memoizedSelectedData.data.data.map((item: any, index: any) => (
-                              <div key={index} className="border-t border-gray-200">
-                                {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 pt-4 space-y-4">
-                                  <h3 className="text-xl font-medium text-gray-800 mb-2">
-                                    {
-                                      index === 0 ? 'Full Game' : index === 1 ? '1st Half' : `Period ${index + 1}` 
-                                    }:
+                        ) ? (
+                          memoizedSelectedData.data.data.map((item: any, index: any) => (
+                            <div key={index} className="border-t border-gray-200">
+                              {(item.money_line.length !== 0 ||
+                                item.spread.length !== 0 ||
+                                item.total.length !== 0) && (
+                                <div className="space-y-3 py-4">
+                                  <h3 className="text-lg font-semibold text-gray-800">
+                                    {item.game_period_label}
                                   </h3>
-                                  {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} search={true} /></li>}
-                                  {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} search={true} /></li>}
-                                  {item.total.length !== 0 && <li><Total item={item.total} search={true} /></li>}
-                                </ul>}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-gray-500 text-sm text-center py-4">
-                              No data available for this event.
+                                  <MoneyLineTable data={item.money_line} />
+                                  <Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} search={true} />
+                                  <Total item={item.total} search={true} />
+                                </div>
+                              )}
                             </div>
-                          )
-                        }
+                          ))
+                        ) : (
+                          <div className="text-gray-500">No data available</div>
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
-              ))
-            }
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-center space-x-4 mt-6">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:bg-gray-300"
+              >
+                Previous
+              </button>
+              {pageNumbers.map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`px-4 py-2 rounded-full ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'bg-white text-blue-500'}`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:bg-gray-300"
+              >
+                Next
+              </button>
             </div>
           </div>
         </CardContent>
