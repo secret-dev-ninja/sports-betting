@@ -253,7 +253,9 @@ async def receive_event_info(sport_id: int, league_id: int, team_name: str = Non
         cursor.execute("""
             SELECT event_id, home_team, away_team, starts
             FROM events
-            WHERE sport_id = %s AND league_id = %s
+            WHERE sport_id = %s 
+                AND league_id = %s 
+                AND event_type = 'prematch'
             ORDER BY starts DESC;
         """, (sport_id, league_id))
 
@@ -278,8 +280,9 @@ async def receive_event_info(sport_id: int, league_id: int, team_name: str = Non
             SELECT event_id, home_team, away_team, starts
             FROM events
             WHERE sport_id = %s
-              AND league_id = %s
-              AND (home_team = %s OR away_team = %s)
+                AND league_id = %s
+                AND (home_team = %s OR away_team = %s)
+                AND event_type = 'prematch'
             ORDER BY starts DESC;
         """, (sport_id, league_id, team_name, team_name))
 
