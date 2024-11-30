@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent } from './ui/card';
 import SearchableDropdown from './ui/dropdown';
-import MoneyLineTable from './ui/tb_money_line';
+import MoneyLine from './ui/money_line';
 import Spread from './ui/spread';
 import Total from './ui/total';
 
@@ -270,7 +270,7 @@ const SearchOdds = () => {
                                     index === 0 ? 'Full Game' : index === 1 ? '1st Half' : `Period ${index + 1}` 
                                   }:
                                 </h3>
-                                {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} search={true} /></li>}
+                                {item.money_line.length !== 0 && <li><MoneyLine data={item.money_line} update={update} search={true} /></li>}
                                 {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} search={true} /></li>}
                                 {item.total.length !== 0 && <li><Total item={item.total} search={true} /></li>}
                               </ul>}

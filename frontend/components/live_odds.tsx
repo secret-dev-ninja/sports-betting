@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import MoneyLineTable from './ui/tb_money_line';
+import MoneyLineTable from './ui/money_line';
 import Spread from './ui/spread';
 import Total from './ui/total';
 
