@@ -152,13 +152,13 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                 SELECT
                     * 
                 FROM
-                    ( SELECT s.home_odds, s.away_odds, p.cutoff::timestamp as cutoff, s.max_bet
+                    ( SELECT s.home_odds, s.away_odds, s.time::timestamp as time, s.max_bet
                     FROM spreads s
                     JOIN periods p ON s.period_id = p.period_id
                     WHERE s.period_id = %s AND s.handicap = %s 
                     ORDER BY s.time DESC LIMIT 30 ) tmp 
                 ORDER BY
-                    tmp.cutoff ASC
+                    tmp.time ASC
             """, (period_id, hdp))
 
             spreads = cursor.fetchall()
@@ -184,13 +184,13 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                 SELECT
                     * 
                 FROM
-                    ( SELECT ml.home_odds, ml.away_odds, p.cutoff::timestamp as cutoff, ml.max_bet
+                    ( SELECT ml.home_odds, ml.away_odds, ml.time::timestamp as time, ml.max_bet
                     FROM money_lines ml
                     JOIN periods p ON ml.period_id = p.period_id
                     WHERE ml.period_id = %s 
                     ORDER BY ml.time DESC LIMIT 30 ) tmp 
                 ORDER BY
-                    tmp.cutoff ASC
+                    tmp.time ASC
             """, (period_id,))
 
             spreads = cursor.fetchall()
@@ -214,13 +214,13 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                 SELECT
                     * 
                 FROM
-                    ( SELECT t.over_odds, t.under_odds, p.cutoff::timestamp as cutoff, t.max_bet
+                    ( SELECT t.over_odds, t.under_odds, t.time::timestamp as time, t.max_bet
                     FROM totals t
                     JOIN periods p ON t.period_id = p.period_id
                     WHERE t.period_id = %s and t.points = %s
                     ORDER BY t.time DESC LIMIT 30 ) tmp 
                 ORDER BY
-                    tmp.cutoff ASC
+                    tmp.time ASC
             """, (period_id, points))
 
             totals = cursor.fetchall()
@@ -343,7 +343,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, starts::timestamp as starts
+            SELECT event_id, home_team, away_team, league_name, starts::timestamp as starts, last_updated::timestamp as updated_at
             FROM events
             WHERE sport_id = %s 
                 AND league_id = %s 
@@ -358,7 +358,9 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                 'event_id': event[0],
                 'home_team': event[1],
                 'away_team': event[2],
-                'updated_at': event[3]
+                'league_name': event[3],
+                'starts': event[4],
+                'updated_at': event[5]
             } for event in events
         ]
         
@@ -369,7 +371,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, starts::timestamp as starts
+            SELECT event_id, home_team, away_team, league_name, starts::timestamp as starts, last_updated::timestamp as updated_at
             FROM events
             WHERE sport_id = %s
                 AND (home_team = %s OR away_team = %s)
@@ -383,19 +385,20 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                 'event_id': event[0],
                 'home_team': event[1],
                 'away_team': event[2],
-                'updated_at': event[3]
+                'league_name': event[3],
+                'starts': event[4],
+                'updated_at': event[5]
             } for event in events
         ]
         
-        return result
-    
+        return result  
     else:
         conn = psycopg2.connect(**DB_CONFIG)
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, starts::timestamp as starts
+            SELECT event_id, home_team, away_team, league_name, starts::timestamp as starts, last_updated::timestamp as updated_at
             FROM events
             WHERE sport_id = %s
                 AND league_id = %s
@@ -411,11 +414,14 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                 'event_id': event[0],
                 'home_team': event[1],
                 'away_team': event[2],
-                'updated_at': event[3]
+                'league_name': event[3],
+                'starts': event[4],
+                'updated_at': event[5],
             } for event in events
         ]
         
         return result
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

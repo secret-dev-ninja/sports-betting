@@ -4,6 +4,7 @@ import SearchableDropdown from './ui/dropdown';
 import MoneyLine from './ui/money_line';
 import Spread from './ui/spread';
 import Total from './ui/total';
+import { Badge } from './ui/badge';
 
 interface DropdownOption {
   value: number;
@@ -14,6 +15,8 @@ interface Update {
   event_id: string;
   home_team: string;
   away_team: string;
+  league_name: string;
+  starts: string;
   updated_at: string;
 }
 
@@ -319,7 +322,7 @@ const SearchOdds = () => {
                   onClick={(event) => handleGetDetailInfo(update.event_id, event)}
                 >
                   <div className="flex items-center justify-between p-3">
-                    <div className="flex-1 w-[70%]">
+                    <div className="flex-1">
                       <div className="font-medium">
                         {update.home_team} vs {update.away_team}
                       </div>
@@ -327,8 +330,22 @@ const SearchOdds = () => {
                         Event ID: {update.event_id}
                       </div>
                     </div>
-                    <div className="flex w-[30%] items-center gap-3">
-                      <div className="text-sm text-gray-500">
+                    <div className="flex-1 text-sm">
+                      {update.league_name}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-sm  text-gray-600">
+                        Match Date:
+                      </div>
+                      <div className="text-sm">
+                        {update.starts.replace('T', ' ')}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-sm text-gray-600">
+                        Last updated log time:
+                      </div>
+                      <div className="text-sm">
                         {update.updated_at.replace('T', ' ')}
                       </div>
                     </div>
