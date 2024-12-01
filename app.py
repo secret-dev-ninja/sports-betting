@@ -214,7 +214,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                 SELECT
                     * 
                 FROM
-                    ( SELECT t.points, t.over_odds, t.under_odds, p.cutoff::timestamp as cutoff, t.max_bet
+                    ( SELECT t.over_odds, t.under_odds, p.cutoff::timestamp as cutoff, t.max_bet
                     FROM totals t
                     JOIN periods p ON t.period_id = p.period_id
                     WHERE t.period_id = %s and t.points = %s
@@ -225,9 +225,9 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
 
             totals = cursor.fetchall()
             result = [{
-                'time': total[2].strftime('%m-%d %H:%M'),
                 'over': total[0], 
                 'under': total[1],
+                'time': total[2].strftime('%m-%d %H:%M'),
                 'limit': total[3]
             } for total in totals]
 

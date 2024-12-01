@@ -22,6 +22,7 @@ const LiveOddsDashboard = () => {
   const [selectedData, setSelectedData] = useState<any | null>(null);
   const [clickedSpreadData, setClickedSpreadData] = useState<any | null>(null);
   const [clickedMoneyLineData, setClickedMoneyLineData] = useState<any | null>(null);
+  const [clickedTotalData, setClickedTotalData] = useState<any | null>(null);
 
   useEffect(() => {
     const ws = new WebSocket(process.env.NEXT_APP_WS_URL);
@@ -110,6 +111,10 @@ const LiveOddsDashboard = () => {
     return clickedMoneyLineData;
   }, [clickedMoneyLineData?.period_id]);
 
+  const memoizedClickedTotalData = useMemo(() => {
+    return clickedTotalData;
+  }, [clickedTotalData?.period_id, clickedTotalData?.points]);
+
   const sportsList: string[] = ["Soccer", "Tennis", "Basketball", "Hockey", "Volleyball", "Handball", "American Football", "Mixed Martial Arts", "Baseball"]; 
 
   const handleGetDetailInfo = async (event_id:string, event: React.MouseEvent) => {
@@ -194,6 +199,34 @@ const LiveOddsDashboard = () => {
     }
   };
 
+  const handleGetTotalChart = async (period_id: string, points: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&points=${points}&type=total`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+      if (!response.ok) {
+        console.error('Error:', response.status, response.statusText);
+      } else {
+        const data = await response.json();
+        setClickedTotalData({
+          period_id: period_id,
+          points: points,
+          data: data,
+        });
+      }
+    } catch (error) {
+      console.error('Error getting chart info: ', error);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <Card className="mb-6 mt-5">
@@ -254,7 +287,7 @@ const LiveOddsDashboard = () => {
                                   <h3 className="text-xl font-medium text-gray-800 mb-2">{index === 0 ? 'Full Game' : `Period ${index - 1}`}:</h3>
                                   {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} update={update} search={true} period_id={item.period_id} handleGetChart={handleGetMoneyLineChart} memoizedClickedData={memoizedClickedMoneyLineData} /></li>}
                                   {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetSpreadChart} memoizedClickedData={memoizedClickedSpreadData} /></li>}
-                                  {item.total.length !== 0 && <li><Total item={item.total} /></li>}
+                                  {item.total.length !== 0 && <li><Total item={item.total} period_id={item.period_id} handleGetChart={handleGetTotalChart} memoizedClickedData={memoizedClickedTotalData} /></li>}
                                 </ul>}
                               </div>
                             ))

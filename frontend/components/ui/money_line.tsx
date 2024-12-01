@@ -40,7 +40,7 @@ const MoneyLine = ({ data, period_id, update, search, handleGetChart, memoizedCl
                         </td>
                       </tr>
                     )
-                }
+                  }
                 </React.Fragment>
               ))}
             </tbody>

@@ -32,6 +32,7 @@ const SearchOdds = () => {
   const [selectedData, setSelectedData] = useState<any | null>(null);
   const [clickedSpreadData, setClickedSpreadData] = useState<any | null>(null);
   const [clickedMoneyLineData, setClickedMoneyLineData] = useState<any | null>(null);
+  const [clickedTotalData, setClickedTotalData] = useState<any | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -225,6 +226,34 @@ const SearchOdds = () => {
     }
   };
 
+  const handleGetTotalChart = async (period_id: string, points: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&points=${points}&type=total`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+      if (!response.ok) {
+        console.error('Error:', response.status, response.statusText);
+      } else {
+        const data = await response.json();
+        setClickedTotalData({
+          period_id: period_id,
+          points: points,
+          data: data,
+        });
+      }
+    } catch (error) {
+      console.error('Error getting chart info: ', error);
+    }
+  };
+
   const memoizedSelectedData = useMemo(() => {
     return selectedData;
   }, [selectedData?.event_id]);
@@ -236,6 +265,10 @@ const SearchOdds = () => {
   const memoizedClickedMoneyLineData = useMemo(() => {
     return clickedMoneyLineData;
   }, [clickedMoneyLineData?.period_id]);
+
+  const memoizedClickedTotalData = useMemo(() => {
+    return clickedTotalData;
+  }, [clickedTotalData?.period_id, clickedTotalData?.points]);
 
   // Paginate updates
   const paginatedUpdates = useMemo(() => {
@@ -320,7 +353,7 @@ const SearchOdds = () => {
                                 </h3>
                                 {item.money_line.length !== 0 && <li><MoneyLine data={item.money_line} period_id={item.period_id} update={update} search={true} handleGetChart={handleGetMoneyLineChart} memoizedClickedData={memoizedClickedMoneyLineData} /></li>}
                                 {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetSpreadChart} memoizedClickedData={memoizedClickedSpreadData} search={true} /></li>}
-                                {item.total.length !== 0 && <li><Total item={item.total} search={true} /></li>}
+                                {item.total.length !== 0 && <li><Total item={item.total} search={true} period_id={item.period_id} handleGetChart={handleGetTotalChart} memoizedClickedData={memoizedClickedTotalData} /></li>}
                               </ul>}
                             </div>
                           ))
