@@ -73,6 +73,15 @@ const SearchOdds = () => {
     fetchOpts();
   }, []);
 
+  useEffect(() => {
+    if (updates.length > 0) {
+      handleGetDetailInfo(updates[0].event_id, {
+        stopPropagation: () => {},
+        preventDefault: () => {},
+      } as React.MouseEvent);
+    }
+  }, [updates]);
+
   const handleDropdownSportsSelect = (value: DropdownOption) => {
     setSports(value.value);
     fetchOpts(value.value);
