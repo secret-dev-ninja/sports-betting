@@ -1,13 +1,14 @@
 import * as React from "react"
+import ChartComponent from "./chart";
 
-const MoneyLine = ({ data, update, search }: { data: any[], update: any, search?: boolean }) => {
+const MoneyLine = ({ data, period_id, update, search, handleGetChart, memoizedClickedData }: { data: any[], period_id: string, update: any, search?: boolean, handleGetChart: (period_id: string, event: React.MouseEvent<HTMLTableRowElement>) => void, memoizedClickedData: any }) => {
     return (
       <>
         <h4 className="font-semibold text-gray-700 mb-2">Money Line:</h4>
         {
-          data.length ?  
+          data.length ?
           <table className="min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden">
-            <thead className="bg-blue-200">
+          <thead className="bg-blue-200">
               <tr>
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Home Team</th>
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Home Odds</th>
@@ -20,15 +21,27 @@ const MoneyLine = ({ data, update, search }: { data: any[], update: any, search?
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {data.map((ml, mIndex) => (
-                <tr key={mIndex}>
-                  <td className="py-2 px-4 text-sm text-gray-600">{update.home_team}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{ml[0]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{ml[1]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{update.away_team}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{ml[2]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{ml[3]}</td>
-                  { search ? <td className="py-2 px-4 text-sm text-gray-600">{ml[4].replace('T', ' ')}</td>: '' }
-                </tr>
+                <React.Fragment key={mIndex}>
+                  <tr className="bg-white hover:bg-gray-100 transition cursor-pointer" onClick={(event) => handleGetChart(period_id, event)}>
+                    <td className="py-2 px-4 text-sm text-gray-600">{update.home_team}</td>
+                    <td className="py-2 px-4 text-sm text-gray-600">{ml[0]}</td>
+                    <td className="py-2 px-4 text-sm text-gray-600">{ml[1]}</td>
+                    <td className="py-2 px-4 text-sm text-gray-600">{update.away_team}</td>
+                    <td className="py-2 px-4 text-sm text-gray-600">{ml[2]}</td>
+                    <td className="py-2 px-4 text-sm text-gray-600">{ml[3]}</td>
+                    { search ? <td className="py-2 px-4 text-sm text-gray-600">{ml[4].replace('T', ' ')}</td>: '' }
+                  </tr>
+                  {
+                    memoizedClickedData &&
+                    memoizedClickedData.period_id === period_id && (
+                      <tr>
+                        <td colSpan={8}>
+                          <ChartComponent data={memoizedClickedData.data.data} />
+                        </td>
+                      </tr>
+                    )
+                }
+                </React.Fragment>
               ))}
             </tbody>
           </table> : 

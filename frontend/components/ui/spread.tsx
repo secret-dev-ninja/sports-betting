@@ -57,7 +57,8 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
                     </td>
                   )}
                 </tr>
-                {memoizedClickedData &&
+                {
+                  memoizedClickedData &&
                   memoizedClickedData.period_id === item.period_id[0] &&
                   memoizedClickedData.hdp === sp[0] && (
                     <tr>
@@ -65,7 +66,8 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
                         <ChartComponent data={memoizedClickedData.data.data} />
                       </td>
                     </tr>
-                  )}
+                  )
+                }
               </React.Fragment>
             ))}
           </tbody>

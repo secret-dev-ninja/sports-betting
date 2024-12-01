@@ -21,6 +21,7 @@ const LiveOddsDashboard = () => {
   const [activeTab, setActiveTab] = useState<Number>(1);
   const [selectedData, setSelectedData] = useState<any | null>(null);
   const [clickedSpreadData, setClickedSpreadData] = useState<any | null>(null);
+  const [clickedMoneyLineData, setClickedMoneyLineData] = useState<any | null>(null);
 
   useEffect(() => {
     const ws = new WebSocket(process.env.NEXT_APP_WS_URL);
@@ -105,6 +106,10 @@ const LiveOddsDashboard = () => {
     return clickedSpreadData;
   }, [clickedSpreadData?.period_id, clickedSpreadData?.hdp]);
 
+  const memoizedClickedMoneyLineData = useMemo(() => {
+    return clickedMoneyLineData;
+  }, [clickedMoneyLineData?.period_id]);
+
   const sportsList: string[] = ["Soccer", "Tennis", "Basketball", "Hockey", "Volleyball", "Handball", "American Football", "Mixed Martial Arts", "Baseball"]; 
 
   const handleGetDetailInfo = async (event_id:string, event: React.MouseEvent) => {
@@ -133,12 +138,39 @@ const LiveOddsDashboard = () => {
     }
   };
 
+  const handleGetMoneyLineChart = async (period_id: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&type=money_line`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+      if (!response.ok) {
+        console.error('Error:', response.status, response.statusText);
+      } else {
+        const data = await response.json();
+        setClickedMoneyLineData({
+          period_id: period_id,
+          data: data,
+        });
+      }
+    } catch (error) {
+      console.error('Error getting chart info: ', error);
+    }
+  };
+
   const handleGetSpreadChart = async(period_id: string, hdp: number, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
     try {
-      const response = await fetch(`${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&hdp=${hdp}`, {
+      const response = await fetch(`${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&hdp=${hdp}&type=spread`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +192,7 @@ const LiveOddsDashboard = () => {
     catch (error) {
       console.error('Error getting chart info: ', error)
     }
-  }
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -220,7 +252,7 @@ const LiveOddsDashboard = () => {
                               <div key={index} className="border-t border-gray-200 pt-4">
                                 {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 space-y-4">
                                   <h3 className="text-xl font-medium text-gray-800 mb-2">{index === 0 ? 'Full Game' : `Period ${index - 1}`}:</h3>
-                                  {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} update={update} search={true} /></li>}
+                                  {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} update={update} search={true} period_id={item.period_id} handleGetChart={handleGetMoneyLineChart} memoizedClickedData={memoizedClickedMoneyLineData} /></li>}
                                   {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetSpreadChart} memoizedClickedData={memoizedClickedSpreadData} /></li>}
                                   {item.total.length !== 0 && <li><Total item={item.total} /></li>}
                                 </ul>}

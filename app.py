@@ -140,37 +140,101 @@ async def receive_event(event_id: str):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 @app.get("/receive-chart-event")
-async def receive_chart_event(period_id: str, hdp: float):
-    try: 
-        # Add the received event_id to the storage
-        conn = get_db_connection()
-        cursor = conn.cursor()
+async def receive_chart_event(period_id: str, hdp: float = None, points: float = None, type: str = None):
+    if type == 'spread':
+        try: 
+            # Add the received event_id to the storage
+            conn = get_db_connection()
+            cursor = conn.cursor()
 
-        # Query to get period_ids by event_id
-        cursor.execute("""
-            SELECT
-                * 
-            FROM
-                ( SELECT home_odds, away_odds, time, max_bet
-                FROM spreads 
-                WHERE period_id = %s AND handicap = %s 
-                ORDER BY time DESC LIMIT 20 ) tmp 
-            ORDER BY
-                tmp.time ASC
-        """, (period_id, hdp))
+            # Query to get period_ids by event_id
+            cursor.execute("""
+                SELECT
+                    * 
+                FROM
+                    ( SELECT s.home_odds, s.away_odds, p.cutoff::timestamp as cutoff, s.max_bet
+                    FROM spreads s
+                    JOIN periods p ON s.period_id = p.period_id
+                    WHERE s.period_id = %s AND s.handicap = %s 
+                    ORDER BY s.time DESC LIMIT 30 ) tmp 
+                ORDER BY
+                    tmp.cutoff ASC
+            """, (period_id, hdp))
 
-        spreads = cursor.fetchall()
-        result = [{
-            'time': spread[2].strftime('%m-%d %H:%M'),
-            'home': spread[0], 
-            'away': spread[1],
-            'limit': spread[3]
-        } for spread in spreads]
-        
-        return {"message": "success", "data": result}
-    except Exception as e:
-        logger.error(f"Error in /receive-chart-event: {e}")
-        raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
+            spreads = cursor.fetchall()
+            result = [{
+                'time': spread[2].strftime('%m-%d %H:%M'),
+                'home': spread[0], 
+                'away': spread[1],
+                'limit': spread[3]
+            } for spread in spreads]
+            
+            return {"message": "success", "data": result}
+        except Exception as e:
+            logger.error(f"Error in /receive-chart-event: {e}")
+            raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
+    elif type == 'money_line':
+        try: 
+            # Add the received event_id to the storage
+            conn = get_db_connection()
+            cursor = conn.cursor()
+
+            # Query to get period_ids by event_id
+            cursor.execute("""
+                SELECT
+                    * 
+                FROM
+                    ( SELECT ml.home_odds, ml.away_odds, p.cutoff::timestamp as cutoff, ml.max_bet
+                    FROM money_lines ml
+                    JOIN periods p ON ml.period_id = p.period_id
+                    WHERE ml.period_id = %s 
+                    ORDER BY ml.time DESC LIMIT 30 ) tmp 
+                ORDER BY
+                    tmp.cutoff ASC
+            """, (period_id,))
+
+            spreads = cursor.fetchall()
+            result = [{
+                'time': spread[2].strftime('%m-%d %H:%M'),
+                'home': spread[0], 
+                'away': spread[1],
+                'limit': spread[3]
+            } for spread in spreads]
+            
+            return {"message": "success", "data": result}
+        except Exception as e:
+            logger.error(f"Error in /receive-chart-event: {e}")
+            raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
+    elif type == 'total':
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT
+                    * 
+                FROM
+                    ( SELECT t.points, t.over_odds, t.under_odds, p.cutoff::timestamp as cutoff, t.max_bet
+                    FROM totals t
+                    JOIN periods p ON t.period_id = p.period_id
+                    WHERE t.period_id = %s and t.points = %s
+                    ORDER BY t.time DESC LIMIT 30 ) tmp 
+                ORDER BY
+                    tmp.cutoff ASC
+            """, (period_id, points))
+
+            totals = cursor.fetchall()
+            result = [{
+                'time': total[2].strftime('%m-%d %H:%M'),
+                'over': total[0], 
+                'under': total[1],
+                'limit': total[3]
+            } for total in totals]
+
+            return {"message": "success", "data": result}
+        except Exception as e:
+            logger.error(f"Error in /receive-chart-event: {e}")
+            raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
 
 @app.get("/receive-options-event")
 async def receive_options_event(sport_id: int = None, league_id: int = None):
