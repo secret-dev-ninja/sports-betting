@@ -30,6 +30,7 @@ class DatabaseManager:
         self.cache = {}
         self.first_pass = True
         self.changes_this_update = set()
+        self.since = None
 
     def get_connection(self):
         """Create and return a database connection"""
@@ -77,47 +78,30 @@ class DatabaseManager:
         finally:
             cur.close()
 
-    def insert_log(self, conn, sports, last):
-        cur = conn.cursor()
-        # Check if the log already exists
-        cur.execute('''
-            SELECT 1 FROM api_request_logs 
-            WHERE sport_id = %s AND last_call = %s
-        ''', (sports, last))
-
-        # If no rows are returned, insert the new log
-        if cur.fetchone() is None:
-            try:
-                # Execute the INSERT query
-                cur.execute('''
-                    INSERT INTO api_request_logs (
-                        sport_id, last_call, created_at
-                    ) VALUES (%s, %s, DEFAULT)
-                ''', (sports, last))
-
-                # Commit the transaction
-                conn.commit()
-                print("Request log inserted successfully.")
-            except psycopg2.Error as e:
-                # Rollback in case of an error
-                conn.rollback()
-                print(f"An error occurred: {e}")
-        else:
-            print("Request log already exists. No insert performed.")
-
-    def get_last_call(self, conn, sports):
+    def insert_log(self, conn, event_id: int, since: str):
         cur = conn.cursor()
         try:
-            query = '''
-                SELECT MAX(last_call) FROM api_request_logs 
-                WHERE sport_id = %s;
-            '''
-            cur.execute(query, (sports,))
-            return cur.fetchone()[0]
-            
-        except Exception as e:
-            logger.error(f"Error inserting log: {e}")
+            # Execute the INSERT query
+            cur.execute('''
+                INSERT INTO api_request_logs (
+                    event_id, since, created_at
+                ) VALUES (%s, %s, DEFAULT)
+            ''', (event_id, since))
 
+            # Commit the transaction
+            conn.commit()
+            print("Request log inserted successfully.")
+        except psycopg2.Error as e:
+            # Rollback in case of an error
+            conn.rollback()
+            print(f"An error occurred: {e}")
+
+    def insert_since(self, since: str):
+        self.since = since
+
+    def get_since(self):
+        return self.since
+            
 class OddsCollector:
     def __init__(self):
         self.db_manager = DatabaseManager()
@@ -144,10 +128,12 @@ class OddsCollector:
         logger.info(f"Making API request to Pinnacle{' with sport_id=' + str(sport_id) + ' since=' + str(self.last_timestamp) if self.last_timestamp else ''}")
         try:
             response = requests.get(url, headers=headers, params=params)
-                
             response.raise_for_status()
             data = response.json()
-            
+
+            if 'since' in params:
+                self.db_manager.insert_since(params['since'])
+
             if 'last' in data:
                 self.last_timestamp = data['last']
                 logger.info('set last_timestamp:' + str(self.last_timestamp))
@@ -165,6 +151,9 @@ class OddsCollector:
         if cur is None:
             cur = conn.cursor()
         
+        if self.db_manager.get_since():
+            self.db_manager.insert_log(conn, event['event_id'], self.db_manager.get_since())
+
         try:
             # Determine event category
             event_category = 'standard'

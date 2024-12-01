@@ -52,8 +52,8 @@ class DatabaseManager:
             cur.execute('''
             CREATE TABLE IF NOT EXISTS api_request_logs (
                 id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                sport_id INTEGER,
-                last_call BIGINT,
+                event_id BIGINT,
+                since TEXT,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             );
             ''')
