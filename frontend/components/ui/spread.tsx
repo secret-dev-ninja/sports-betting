@@ -53,7 +53,7 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
                   <td className="py-2 px-4 text-sm text-gray-600">{sp[3]}</td>
                   {search && (
                     <td className="py-2 px-4 text-sm text-gray-600">
-                      {new Date(sp[4]).toISOString().slice(0, 19).replace('T', ' ')}
+                      {sp[4].replace('T', ' ')}
                     </td>
                   )}
                 </tr>

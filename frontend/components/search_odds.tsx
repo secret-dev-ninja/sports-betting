@@ -248,7 +248,7 @@ const SearchOdds = () => {
                     </div>
                     <div className="flex w-[30%] items-center gap-3">
                       <div className="text-sm text-gray-500">
-                        {new Date(update.updated_at).toISOString().slice(0, 19)}
+                        {update.updated_at.replace('T', ' ')}
                       </div>
                     </div>
                   </div>

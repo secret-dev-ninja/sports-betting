@@ -77,51 +77,53 @@ async def receive_event(event_id: str):
         for period in periods:
             # Query to get the money_line data for a specific period_id
             cursor.execute("""
-                WITH MaxTime AS (
-                    SELECT period_id, MAX(time) AS max_time
-                    FROM money_lines
-                    WHERE period_id = %s
-                    GROUP BY period_id
-                )
-                SELECT ml.home_odds, ml.draw_odds, ml.away_odds, ml.max_bet, mt.max_time
-                FROM money_lines ml
-                JOIN MaxTime mt
-                ON ml.period_id = mt.period_id AND ml.time = mt.max_time
-                WHERE ml.period_id = %s
-                ORDER BY ml.period_id;
-            """, (period, period))
+                SELECT 
+                    ml.home_odds,
+                    ml.draw_odds,
+                    ml.away_odds,
+                    ml.max_bet,
+                    p.cutoff::timestamp as cutoff
+                FROM
+                    money_lines ml
+                JOIN periods p ON ml.period_id = p.period_id 
+                WHERE
+                    p.period_id = %s
+                ORDER BY
+                    time DESC 
+                LIMIT 1
+            """, (period))
             money_line = cursor.fetchall()
 
             # Query to get the spread data for a specific period_id
             cursor.execute("""
-                WITH MaxTime AS (
-                    SELECT MAX(time) AS max_time
-                    FROM spreads
-                    WHERE period_id = %s
-                )
-                SELECT handicap, home_odds, away_odds, max_bet, MaxTime.max_time
-                FROM spreads
-                JOIN MaxTime
-                ON spreads.time = MaxTime.max_time
-                WHERE spreads.period_id = %s
-                ORDER BY handicap ASC;
-            """, (period, period))
+               SELECT 
+                    DISTINCT ON (handicap)
+                    s.handicap,
+                    s.home_odds, 
+                    s.away_odds, 
+                    s.max_bet,
+                    p.cutoff::timestamp as cutoff
+                FROM spreads s
+                JOIN periods p ON s.period_id = p.period_id
+                WHERE s.period_id = %s
+                ORDER BY s.handicap, s.time DESC;
+            """, (period,))
             spread = cursor.fetchall()
 
             # Query to get the total data for a specific period_id
             cursor.execute("""
-                WITH MaxTime AS (
-                    SELECT MAX(time) AS max_time
-                    FROM totals
-                    WHERE period_id = %s
-                )
-                SELECT points, over_odds, under_odds, max_bet, mt.max_time
+                SELECT 
+                    DISTINCT ON (points)
+                    t.points, 
+                    t.over_odds, 
+                    t.under_odds, 
+                    t.max_bet,
+                    p.cutoff::timestamp as cutoff
                 FROM totals t
-                JOIN MaxTime mt
-                ON t.time = mt.max_time
+                JOIN periods p ON t.period_id = p.period_id
                 WHERE t.period_id = %s
-                ORDER BY t.points ASC;
-            """, (period,period))
+                ORDER BY t.points, t.time DESC;
+            """, (period,))
             total = cursor.fetchall()
 
             # Append the result as a dictionary
@@ -146,12 +148,15 @@ async def receive_chart_event(period_id: str, hdp: float):
 
         # Query to get period_ids by event_id
         cursor.execute("""
-            SELECT home_odds, away_odds, time
-            FROM spreads
-            WHERE period_id = %s AND handicap = %s
-            ORDER BY time DESC
-            LIMIT 20
-            OFFSET 0
+            SELECT
+                * 
+            FROM
+                ( SELECT home_odds, away_odds, time 
+                FROM spreads 
+                WHERE period_id = %s AND handicap = %s 
+                ORDER BY time DESC LIMIT 20 ) tmp 
+            ORDER BY
+                tmp.time ASC
         """, (period_id, hdp))
 
         spreads = cursor.fetchall()
@@ -273,7 +278,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, starts
+            SELECT event_id, home_team, away_team, starts::timestamp as starts
             FROM events
             WHERE sport_id = %s 
                 AND league_id = %s 
@@ -299,7 +304,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, starts
+            SELECT event_id, home_team, away_team, starts::timestamp as starts
             FROM events
             WHERE sport_id = %s
                 AND (home_team = %s OR away_team = %s)
@@ -325,7 +330,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, starts
+            SELECT event_id, home_team, away_team, starts::timestamp as starts
             FROM events
             WHERE sport_id = %s
                 AND league_id = %s

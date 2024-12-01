@@ -27,7 +27,7 @@ const MoneyLine = ({ data, update, search }: { data: any[], update: any, search?
                   <td className="py-2 px-4 text-sm text-gray-600">{update.away_team}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{ml[2]}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{ml[3]}</td>
-                  { search ? <td className="py-2 px-4 text-sm text-gray-600">{new Date(ml[4]).toISOString().slice(0, 19).replace('T', ' ')}</td>: '' }
+                  { search ? <td className="py-2 px-4 text-sm text-gray-600">{ml[4].replace('T', ' ')}</td>: '' }
                 </tr>
               ))}
             </tbody>

@@ -27,7 +27,7 @@ const Total = ({ item, search }: { item: any[], search?: boolean }) => {
                 <td className="py-2 px-4 text-sm text-gray-600">{tt[1]}</td>
                 <td className="py-2 px-4 text-sm text-gray-600">{tt[2]}</td>
                 <td className="py-2 px-4 text-sm text-gray-600">{tt[3]}</td>
-                { search ? <td className="py-2 px-4 text-sm text-gray-600">{new Date(tt[4]).toISOString().slice(0, 19).replace('T', ' ')}</td>: '' }
+                { search ? <td className="py-2 px-4 text-sm text-gray-600">{tt[4].replace('T', ' ')}</td>: '' }
               </tr>
             ))}
           </tbody>
