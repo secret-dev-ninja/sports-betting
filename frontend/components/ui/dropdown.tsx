@@ -9,8 +9,8 @@ interface DropdownOption {
 interface SearchableDropdownProps {
   options: DropdownOption[];
   placeholder: string;
-  onSelect: (value: number) => void;
-  viewCount?: number; // New prop to set visible item count
+  onSelect: (value: DropdownOption) => void;
+  viewCount?: number;
 }
 
 const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
@@ -21,40 +21,41 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLabel, setSelectedLabel] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Filter options based on search term
   const filteredOptions = options.filter(option =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Limit the number of options shown based on `viewCount` or show all filtered options
   const visibleOptions = viewCount ? filteredOptions.slice(0, viewCount) : filteredOptions;
 
   const handleSelect = (option: DropdownOption) => {
-    setSelectedLabel(option.label); // Show the label in the button
-    onSelect(option.value); // Pass the value to the parent
-    setIsOpen(false); // Close the dropdown
-    setSearchTerm(''); // Clear the search term
+    onSelect(option);
+    setIsOpen(false);
+    setSearchTerm(option.label);
   };
 
-  const handleClose = () => {
-    setIsOpen(false);
-    setSearchTerm('');
+  const highlightMatch = (text: string, search: string) => {
+    if (!search) return text;
+    const regex = new RegExp(`(${search})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) => 
+      regex.test(part) ? <strong key={i}>{part}</strong> : part
+    );
   };
 
   // Close dropdown on ESC key or outside click
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        handleClose();
+        setIsOpen(false);
+        setSearchTerm('');
       }
     };
 
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        handleClose();
+        setIsOpen(false);
       }
     };
 
@@ -69,26 +70,23 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 
   return (
     <div className="relative inline-block w-64" ref={dropdownRef}>
-      {/* Dropdown Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-2 border rounded-lg shadow-sm text-left transition duration-200 ${
-          isOpen ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-300'
-        } bg-white hover:shadow-md`}
-      >
-        {selectedLabel || placeholder}
-        <span
-          className={`float-right transform transition-transform ${
-            isOpen ? 'rotate-180' : ''
-          }`}
-        >
-          ▼
-        </span>
-      </button>
+      <input
+        type="text"
+        className="w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+        placeholder={placeholder}
+        value={searchTerm}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          setIsOpen(true);
+        }}
+        onClick={() => {
+          setIsOpen(true);
+          setSearchTerm('');
+        }}
+      />
 
-      {/* Dropdown Content */}
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && searchTerm && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -96,18 +94,6 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             transition={{ duration: 0.2 }}
             className="absolute mt-2 w-full bg-white border rounded-lg shadow-lg max-h-80 overflow-y-auto z-10"
           >
-            {/* Search Input */}
-            <div className="p-2 border-b border-gray-200">
-              <input
-                type="text"
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Options List */}
             <div className="py-2">
               {visibleOptions.length > 0 ? (
                 visibleOptions.map((option, index) => (
@@ -116,7 +102,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                     onClick={() => handleSelect(option)}
                     className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-blue-100 hover:text-blue-700 transition duration-200"
                   >
-                    {option.label}
+                    {highlightMatch(option.label, searchTerm)}
                   </button>
                 ))
               ) : (
@@ -125,10 +111,9 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                 </div>
               )}
 
-              {/* Message to indicate more options are available */}
               {viewCount && filteredOptions.length > viewCount && (
                 <div className="px-4 py-2 text-sm text-gray-500 text-center">
-                  Showing {viewCount} of {filteredOptions.length} results. Search to view more.
+                  Showing {viewCount} of {filteredOptions.length} results. Type to view more.
                 </div>
               )}
             </div>

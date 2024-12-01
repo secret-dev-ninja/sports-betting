@@ -17,6 +17,11 @@ interface Update {
   updated_at: string;
 }
 
+interface DropdownOption {
+  value: number;
+  label: string;
+}
+
 const SearchOdds = () => {
   const [sportsOpts, setSportsOpts] = useState<DropdownOption[]>([]);
   const [sports, setSports] = useState<number>();
@@ -68,21 +73,23 @@ const SearchOdds = () => {
     fetchOpts();
   }, []);
 
-  const handleDropdownSportsSelect = (value: number) => {
-    setSports(value);
-    fetchOpts(value);
+  const handleDropdownSportsSelect = (value: DropdownOption) => {
+    setSports(value.value);
+    fetchOpts(value.value);
     setUpdates([]);
     handlePageChange(1);
     setLeague(0);
   };
 
-  const handleDropdownLeagueSelect = async (value: number) => {
-    setLeague(value);
-    fetchOpts(sports, value);
+  const handleDropdownLeagueSelect = async (value: DropdownOption) => {
+    setLeague(value.value); 
+    fetchOpts(sports, value.value);
+    console.log(sports, value.value);
     handlePageChange(1);
+    
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${value}`,
+        `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${value.value}`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -101,12 +108,12 @@ const SearchOdds = () => {
     }
   };
 
-  const handleDropdownTeamSelect = async (team: number) => {
+  const handleDropdownTeamSelect = async (value: DropdownOption) => {
     handlePageChange(1);
 
     const url = league ? 
-                `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_name=${team}` : 
-                `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&team_name=${team}`;
+                `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_name=${value.label}` : 
+                `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&team_name=${value.label}`;
     try {
       const response = await fetch(
         url,
