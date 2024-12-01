@@ -151,7 +151,7 @@ async def receive_chart_event(period_id: str, hdp: float):
             SELECT
                 * 
             FROM
-                ( SELECT home_odds, away_odds, time 
+                ( SELECT home_odds, away_odds, time, max_bet
                 FROM spreads 
                 WHERE period_id = %s AND handicap = %s 
                 ORDER BY time DESC LIMIT 20 ) tmp 
@@ -163,7 +163,8 @@ async def receive_chart_event(period_id: str, hdp: float):
         result = [{
             'time': spread[2].strftime('%m-%d %H:%M'),
             'home': spread[0], 
-            'away': spread[1]
+            'away': spread[1],
+            'limit': spread[3]
         } for spread in spreads]
         
         return {"message": "success", "data": result}

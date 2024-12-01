@@ -246,7 +246,7 @@ const SearchOdds = () => {
               />
             </div>
 
-            <div className="rounded-lg hover:cursor-pointer">
+            <div className="rounded-lg">
               {paginatedUpdates.map((update) => (
                 <div
                   key={update.event_id}
