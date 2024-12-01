@@ -20,7 +20,7 @@ const LiveOddsDashboard = () => {
   const [updates, setUpdates] = useState<LiveOddsUpdate[]>([]);
   const [activeTab, setActiveTab] = useState<Number>(1);
   const [selectedData, setSelectedData] = useState<any | null>(null);
-  const [clickedData, setClickedData] = useState<any | null>(null);
+  const [clickedSpreadData, setClickedSpreadData] = useState<any | null>(null);
 
   useEffect(() => {
     const ws = new WebSocket(process.env.NEXT_APP_WS_URL);
@@ -101,9 +101,9 @@ const LiveOddsDashboard = () => {
     return selectedData;
   }, [selectedData?.event_id]);
   
-  const memoizedClickedData = useMemo(() => {
-    return clickedData;
-  }, [clickedData?.period_id, clickedData?.hdp]);
+  const memoizedClickedSpreadData = useMemo(() => {
+    return clickedSpreadData;
+  }, [clickedSpreadData?.period_id, clickedSpreadData?.hdp]);
 
   const sportsList: string[] = ["Soccer", "Tennis", "Basketball", "Hockey", "Volleyball", "Handball", "American Football", "Mixed Martial Arts", "Baseball"]; 
 
@@ -133,7 +133,7 @@ const LiveOddsDashboard = () => {
     }
   };
 
-  const handleGetChart = async(period_id: string, hdp: number, event: React.MouseEvent) => {
+  const handleGetSpreadChart = async(period_id: string, hdp: number, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -150,7 +150,7 @@ const LiveOddsDashboard = () => {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
-        setClickedData({
+        setClickedSpreadData({
           period_id: period_id,
           hdp: hdp,
           data: data
@@ -221,7 +221,7 @@ const LiveOddsDashboard = () => {
                                 {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 space-y-4">
                                   <h3 className="text-xl font-medium text-gray-800 mb-2">{index === 0 ? 'Full Game' : `Period ${index - 1}`}:</h3>
                                   {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} update={update} search={true} /></li>}
-                                  {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} /></li>}
+                                  {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetSpreadChart} memoizedClickedData={memoizedClickedSpreadData} /></li>}
                                   {item.total.length !== 0 && <li><Total item={item.total} /></li>}
                                 </ul>}
                               </div>

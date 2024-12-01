@@ -30,7 +30,7 @@ const SearchOdds = () => {
   const [teamOpts, setTeamOpts] = useState<DropdownOption[]>([]);
   const [updates, setUpdates] = useState<Update[]>([]);
   const [selectedData, setSelectedData] = useState<any | null>(null);
-  const [clickedData, setClickedData] = useState<any | null>(null);
+  const [clickedSpreadData, setClickedSpreadData] = useState<any | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -169,7 +169,7 @@ const SearchOdds = () => {
     }
   };
 
-  const handleGetChart = async (period_id: string, hdp: number, event: React.MouseEvent) => {
+  const handleSpreadGetChart = async (period_id: string, hdp: number, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -186,7 +186,7 @@ const SearchOdds = () => {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
-        setClickedData({
+        setClickedSpreadData({
           period_id: period_id,
           hdp: hdp,
           data: data,
@@ -201,9 +201,9 @@ const SearchOdds = () => {
     return selectedData;
   }, [selectedData?.event_id]);
 
-  const memoizedClickedData = useMemo(() => {
-    return clickedData;
-  }, [clickedData?.period_id, clickedData?.hdp]);
+  const memoizedClickedSpreadData = useMemo(() => {
+    return clickedSpreadData;
+  }, [clickedSpreadData?.period_id, clickedSpreadData?.hdp]);
 
   // Paginate updates
   const paginatedUpdates = useMemo(() => {
@@ -287,7 +287,7 @@ const SearchOdds = () => {
                                   }:
                                 </h3>
                                 {item.money_line.length !== 0 && <li><MoneyLine data={item.money_line} update={update} search={true} /></li>}
-                                {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetChart} memoizedClickedData={memoizedClickedData} search={true} /></li>}
+                                {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleSpreadGetChart} memoizedClickedData={memoizedClickedSpreadData} search={true} /></li>}
                                 {item.total.length !== 0 && <li><Total item={item.total} search={true} /></li>}
                               </ul>}
                             </div>
