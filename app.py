@@ -82,7 +82,7 @@ async def receive_event(event_id: str):
                     ml.draw_odds,
                     ml.away_odds,
                     ml.max_bet,
-                    p.cutoff::timestamp as cutoff
+                    ml.time::timestamp as time
                 FROM
                     money_lines ml
                 JOIN periods p ON ml.period_id = p.period_id 
@@ -102,7 +102,7 @@ async def receive_event(event_id: str):
                     s.home_odds, 
                     s.away_odds, 
                     s.max_bet,
-                    p.cutoff::timestamp as cutoff
+                    s.time::timestamp as time
                 FROM spreads s
                 JOIN periods p ON s.period_id = p.period_id
                 WHERE s.period_id = %s
@@ -118,7 +118,7 @@ async def receive_event(event_id: str):
                     t.over_odds, 
                     t.under_odds, 
                     t.max_bet,
-                    p.cutoff::timestamp as cutoff
+                    t.time::timestamp as time
                 FROM totals t
                 JOIN periods p ON t.period_id = p.period_id
                 WHERE t.period_id = %s
@@ -421,7 +421,6 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         ]
         
         return result
-
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
