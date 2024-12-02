@@ -23,27 +23,6 @@ const SearchableInput: React.FC<SearchableInputProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const filteredOptions = options.filter(option =>
-    option.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const visibleOptions = viewCount ? filteredOptions.slice(0, viewCount) : filteredOptions;
-
-  const handleSelect = (option: InputOption) => {
-    onSelect(option);
-    setIsOpen(false);
-    setSearchTerm(option.label);
-  };
-
-  const highlightMatch = (text: string, search: string) => {
-    if (!search) return text;
-    const regex = new RegExp(`(${search})`, 'gi');
-    const parts = text.split(regex);
-    return parts.map((part, i) => 
-      regex.test(part) ? <strong key={i}>{part}</strong> : part
-    );
-  };
-
   // Close dropdown on ESC key or outside click
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -67,6 +46,36 @@ const SearchableInput: React.FC<SearchableInputProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const filteredOptions = options.filter(option =>
+    option.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const visibleOptions = viewCount ? filteredOptions.slice(0, viewCount) : filteredOptions;
+
+  const handleSelect = (option: InputOption) => {
+    onSelect(option);
+    setIsOpen(false);
+    setSearchTerm(option.label);
+  };
+
+  const highlightMatch = (text: string, search: string) => {
+    if (!search) return text;
+    const regex = new RegExp(`(${search})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) => 
+      regex.test(part) ? <strong key={i}>{part}</strong> : part
+    );
+  };
+
+  const OptionButton = React.memo(({ option, onSelect }: { option: InputOption, onSelect: (option: InputOption) => void }) => (
+    <button
+      onClick={() => onSelect(option)}
+      className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-blue-100 hover:text-blue-700 transition duration-200"
+    >
+      {highlightMatch(option.label, searchTerm)}
+    </button>
+  ));
 
   return (
     <div className="relative inline-block w-64" ref={dropdownRef}>
@@ -97,13 +106,7 @@ const SearchableInput: React.FC<SearchableInputProps> = ({
             <div className="py-2">
               {visibleOptions.length > 0 ? (
                 visibleOptions.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSelect(option)}
-                    className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-blue-100 hover:text-blue-700 transition duration-200"
-                  >
-                    {highlightMatch(option.label, searchTerm)}
-                  </button>
+                  <OptionButton key={index} option={option} onSelect={handleSelect} />
                 ))
               ) : (
                 <div className="p-4 text-gray-500 text-center">

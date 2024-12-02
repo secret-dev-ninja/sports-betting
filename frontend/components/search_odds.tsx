@@ -75,8 +75,10 @@ const SearchOdds = () => {
   };
 
   useEffect(() => {
-    fetchOpts();
-  }, []);
+    if (!sportsOpts.length) {
+      fetchOpts();
+    }
+  }, [sportsOpts]);
 
   useEffect(() => {
     if (updates.length > 0) {
