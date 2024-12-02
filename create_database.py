@@ -38,7 +38,7 @@ class DatabaseManager:
             raise
 
     def ensure_tables_exist(self):
-        """Create necessary tables if they don't exist."""
+        """Create necessary tables and indexes if they don't exist."""
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             cur = conn.cursor()
@@ -154,6 +154,27 @@ class DatabaseManager:
             # Commit changes and close
             conn.commit()
             logger.info("All tables created or verified successfully.")
+
+            # Create indexes
+            # Create indexes
+            indexes = [
+                "CREATE INDEX IF NOT EXISTS idx_events_sport_id ON events(sport_id);",
+                "CREATE INDEX IF NOT EXISTS idx_events_league_id ON events(league_id);",
+                "CREATE INDEX IF NOT EXISTS idx_periods_event_id ON periods(event_id);",
+                "CREATE INDEX IF NOT EXISTS idx_money_lines_period_id ON money_lines(period_id);",
+                "CREATE INDEX IF NOT EXISTS idx_spreads_period_id ON spreads(period_id);",
+                "CREATE INDEX IF NOT EXISTS idx_totals_period_id ON totals(period_id);",
+                "CREATE INDEX IF NOT EXISTS idx_team_totals_period_id ON team_totals(period_id);",
+                "CREATE INDEX IF NOT EXISTS idx_events_home_team ON events(home_team);",
+                "CREATE INDEX IF NOT EXISTS idx_events_away_team ON events(away_team);",
+                "CREATE INDEX IF NOT EXISTS idx_events_sport_league ON events(sport_id, league_id);"
+            ]
+
+            for index_query in indexes:
+                cur.execute(index_query)
+                logger.info(f"Index {index_query} created successfully.")
+
+            conn.commit()
             cur.close()
             conn.close()
 
