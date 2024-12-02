@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent } from './ui/card';
-import SearchableDropdown from './ui/dropdown';
+import SearchableDropdown from './ui/search_dropdown';
+import SearchableInput from './ui/search_input';
 import MoneyLine from './ui/money_line';
 import Spread from './ui/spread';
 import Total from './ui/total';
-import { Badge } from './ui/badge';
 
 interface DropdownOption {
   value: number;
@@ -87,9 +87,9 @@ const SearchOdds = () => {
     }
   }, [updates]);
 
-  const handleDropdownSportsSelect = (value: DropdownOption) => {
-    setSports(value.value);
-    fetchOpts(value.value);
+  const handleDropdownSportsSelect = (value: number) => {
+    setSports(value);
+    fetchOpts(value);
     setUpdates([]);
     handlePageChange(1);
     setLeague(0);
@@ -300,13 +300,13 @@ const SearchOdds = () => {
                 onSelect={handleDropdownSportsSelect}
                 viewCount={10}
               />
-              <SearchableDropdown
+              <SearchableInput
                 options={leagueOpts}
                 placeholder="Select League option"
                 onSelect={handleDropdownLeagueSelect}
                 viewCount={10}
               />
-              <SearchableDropdown
+              <SearchableInput
                 options={teamOpts}
                 placeholder="Select Team option"
                 onSelect={handleDropdownTeamSelect}

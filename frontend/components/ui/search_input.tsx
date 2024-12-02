@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface DropdownOption {
+interface InputOption {
   value: number;
   label: string;
 }
 
-interface SearchableDropdownProps {
-  options: DropdownOption[];
+interface SearchableInputProps {
+  options: InputOption[];
   placeholder: string;
-  onSelect: (value: DropdownOption) => void;
+  onSelect: (value: InputOption) => void;
   viewCount?: number;
 }
 
-const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
+const SearchableInput: React.FC<SearchableInputProps> = ({
   options,
   placeholder,
   onSelect,
@@ -29,7 +29,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 
   const visibleOptions = viewCount ? filteredOptions.slice(0, viewCount) : filteredOptions;
 
-  const handleSelect = (option: DropdownOption) => {
+  const handleSelect = (option: InputOption) => {
     onSelect(option);
     setIsOpen(false);
     setSearchTerm(option.label);
@@ -124,4 +124,4 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   );
 };
 
-export default SearchableDropdown;
+export default SearchableInput;
