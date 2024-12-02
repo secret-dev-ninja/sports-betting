@@ -23,11 +23,9 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
         <table className="min-w-full mt-3 border-collapse border border-gray-300 rounded-lg overflow-hidden">
           <thead className="bg-green-200">
             <tr>
-              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Home Team</th>
-              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Home Handicap</th>
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{ update.home_team } Handicap</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Home Odds</th>
-              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Away Team</th>
-              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Away Handicap</th>
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{ update.away_team } Handicap</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Away Odds</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Limit</th>
               {search && (
@@ -44,10 +42,8 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
                   className="bg-white hover:bg-gray-100 transition cursor-pointer"
                   onClick={(event) => handleGetChart(item.period_id[0], sp[0], event)}
                 >
-                  <td className="py-2 px-4 text-sm text-gray-600">{update.home_team}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{sp[0]}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{sp[1]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{update.away_team}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{-1 * sp[0]}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{sp[2]}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{sp[3]}</td>

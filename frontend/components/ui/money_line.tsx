@@ -10,11 +10,9 @@ const MoneyLine = ({ data, period_id, update, search, handleGetChart, memoizedCl
           <table className="min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden">
           <thead className="bg-blue-200">
               <tr>
-                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Home Team</th>
-                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Home Odds</th>
-                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Draw Odds</th>
-                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Away Team</th>
-                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Away Odds</th>
+                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{update.home_team} odds</th>
+                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Draw</th>
+                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{update.away_team} odds</th>
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Max Bet</th>
                 { search ? <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Timestamp</th>: '' }
               </tr>
@@ -23,10 +21,8 @@ const MoneyLine = ({ data, period_id, update, search, handleGetChart, memoizedCl
               {data.map((ml, mIndex) => (
                 <React.Fragment key={mIndex}>
                   <tr className="bg-white hover:bg-gray-100 transition cursor-pointer" onClick={(event) => handleGetChart(period_id, event)}>
-                    <td className="py-2 px-4 text-sm text-gray-600">{update.home_team}</td>
                     <td className="py-2 px-4 text-sm text-gray-600">{ml[0]}</td>
                     <td className="py-2 px-4 text-sm text-gray-600">{ml[1]}</td>
-                    <td className="py-2 px-4 text-sm text-gray-600">{update.away_team}</td>
                     <td className="py-2 px-4 text-sm text-gray-600">{ml[2]}</td>
                     <td className="py-2 px-4 text-sm text-gray-600">{ml[3]}</td>
                     { search ? <td className="py-2 px-4 text-sm text-gray-600">{ml[4].replace('T', ' ')}</td>: '' }
