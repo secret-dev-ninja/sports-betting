@@ -67,8 +67,6 @@ async def receive_event(event_id: str):
             WHERE event_id = %s;
         """, (event_id,))
 
-
-
         periods = cursor.fetchall()
 
         # If no periods are found for the given event_id
@@ -79,36 +77,40 @@ async def receive_event(event_id: str):
         for period in periods:
             # Query to get the money_line data for a specific period_id
             cursor.execute("""
-                SELECT 
+                SELECT
                     ml.home_odds,
                     ml.draw_odds,
                     ml.away_odds,
                     ml.max_bet,
-                    ml.time::timestamp as time
+                    ml.time :: TIMESTAMP AS time
                 FROM
                     money_lines ml
-                JOIN periods p ON ml.period_id = p.period_id 
+                JOIN periods p ON ml.period_id = p.period_id
                 WHERE
                     p.period_id = %s
+                    AND ml.time <= p.cutoff
                 ORDER BY
-                    time DESC 
+                    ml.time DESC
                 LIMIT 1
             """, (period))
             money_line = cursor.fetchall()
 
             # Query to get the spread data for a specific period_id
             cursor.execute("""
-               SELECT 
-                    DISTINCT ON (handicap)
-                    s.handicap,
-                    s.home_odds, 
-                    s.away_odds, 
+               SELECT DISTINCT ON ( handicap ) s.handicap,
+                    s.home_odds,
+                    s.away_odds,
                     s.max_bet,
-                    s.time::timestamp as time
-                FROM spreads s
-                JOIN periods p ON s.period_id = p.period_id
-                WHERE s.period_id = %s
-                ORDER BY s.handicap, s.time DESC;
+                    s.time :: TIMESTAMP AS time 
+                FROM
+                    spreads s
+                JOIN periods P ON s.period_id = P.period_id 
+                WHERE
+                    s.period_id = %s 
+                    AND P.cutoff >= s.time 
+                ORDER BY
+                    s.handicap,
+                    s.time DESC;
             """, (period,))
             spread = cursor.fetchall()
 
@@ -121,10 +123,14 @@ async def receive_event(event_id: str):
                     t.under_odds, 
                     t.max_bet,
                     t.time::timestamp as time
-                FROM totals t
+                FROM 
+                    totals t
                 JOIN periods p ON t.period_id = p.period_id
-                WHERE t.period_id = %s
-                ORDER BY t.points, t.time DESC;
+                WHERE 
+                    t.period_id = %s
+                    AND p.cutoff >= t.time
+                ORDER BY 
+                    t.points, t.time DESC;
             """, (period,))
             total = cursor.fetchall()
 
