@@ -153,6 +153,11 @@ const SearchOdds = () => {
   const handleGetDetailInfo = async (event_id: string, event: React.MouseEvent) => {
     event.stopPropagation();
 
+    if (selectedData && selectedData.event_id === event_id) {
+      setSelectedData(null);
+      return;
+    }
+
     try {
       const response = await fetch(
         `${process.env.NEXT_APP_API_URL}?event_id=${event_id}`,
