@@ -167,7 +167,10 @@ class DatabaseManager:
                 "CREATE INDEX IF NOT EXISTS idx_team_totals_period_id ON team_totals(period_id);",
                 "CREATE INDEX IF NOT EXISTS idx_events_home_team ON events(home_team);",
                 "CREATE INDEX IF NOT EXISTS idx_events_away_team ON events(away_team);",
-                "CREATE INDEX IF NOT EXISTS idx_events_sport_league ON events(sport_id, league_id);"
+                "CREATE INDEX IF NOT EXISTS idx_events_sport_league ON events(sport_id, league_id);",
+                "CREATE INDEX IF NOT EXISTS idx_events_sport_league_type_start ON events (sport_id, league_id, event_type, event_id, starts DESC);",
+                "CREATE INDEX IF NOT EXISTS idx_events_filter_sort ON events (sport_id, event_type, home_team, away_team, event_id, starts DESC);",
+                "CREATE INDEX IF NOT EXISTS idx_api_request_logs_event_id_created_at ON api_request_logs (event_id, created_at DESC);"
             ]
 
             for index_query in indexes:

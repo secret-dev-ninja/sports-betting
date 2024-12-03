@@ -67,6 +67,8 @@ async def receive_event(event_id: str):
             WHERE event_id = %s;
         """, (event_id,))
 
+
+
         periods = cursor.fetchall()
 
         # If no periods are found for the given event_id
@@ -343,12 +345,27 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, league_name, starts::timestamp as starts, last_updated::timestamp as updated_at
-            FROM events
-            WHERE sport_id = %s 
-                AND league_id = %s 
-                AND event_type = 'prematch'
-            ORDER BY starts DESC;
+            SELECT * FROM (
+                SELECT DISTINCT ON (e.event_id) e.event_id, 
+                    e.home_team,
+                    e.away_team,
+                    e.league_name,
+                    e.starts :: TIMESTAMP AS starts,
+                    l.created_at 
+                FROM
+                    events e
+                JOIN api_request_logs l ON l.event_id = e.event_id 
+                WHERE
+                    e.sport_id = %s 
+                    AND e.league_id = %s 
+                    AND e.event_type = 'prematch' 
+                    AND l.created_at <= e.starts 
+                ORDER BY
+                    e.event_id,
+                    l.created_at DESC 
+            ) AS tmp 
+            ORDER BY
+                tmp.starts DESC;
         """, (sport_id, league_id))
 
         events = cursor.fetchall()
@@ -371,12 +388,27 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, league_name, starts::timestamp as starts, last_updated::timestamp as updated_at
-            FROM events
-            WHERE sport_id = %s
-                AND (home_team = %s OR away_team = %s)
-                AND event_type = 'prematch'
-            ORDER BY starts DESC;
+            SELECT * FROM (
+                SELECT DISTINCT ON (e.event_id) e.event_id,
+                    e.home_team,
+                    e.away_team,
+                    e.league_name,
+                    e.starts::TIMESTAMP AS starts,
+                    l.created_at
+                FROM
+                    events e
+                JOIN api_request_logs l ON l.event_id = e.event_id
+                WHERE
+                    e.sport_id = %s
+                    AND (e.home_team = %s OR e.away_team = %s)
+                    AND e.event_type = 'prematch'
+                    AND l.created_at <= e.starts 
+                ORDER BY
+                    e.event_id,
+                    l.created_at DESC
+            ) AS tmp
+            ORDER BY 
+                tmp.starts DESC;
         """, (sport_id, team_name, team_name))
 
         events = cursor.fetchall()
@@ -398,13 +430,31 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT event_id, home_team, away_team, league_name, starts::timestamp as starts, last_updated::timestamp as updated_at
-            FROM events
-            WHERE sport_id = %s
-                AND league_id = %s
-                AND (home_team = %s OR away_team = %s)
-                AND event_type = 'prematch'
-            ORDER BY starts DESC;
+            SELECT
+            * 
+            FROM
+            (
+                SELECT DISTINCT ON (e.event_id) e.event_id,
+                    e.home_team,
+                    e.away_team,
+                    e.league_name,
+                    e.starts :: TIMESTAMP AS starts,
+                    l.created_at 
+                FROM
+                    events e
+                    JOIN api_request_logs l ON l.event_id = e.event_id 
+                WHERE
+                    e.sport_id = %s 
+                    AND e.league_id = %s 
+                    AND ( e.home_team = %s OR e.away_team = %s ) 
+                    AND e.event_type = 'prematch' 
+                    AND l.created_at <= e.starts 
+                ORDER BY
+                    e.event_id,
+                    l.created_at DESC
+            ) AS tmp 
+            ORDER BY
+                tmp.starts DESC;
         """, (sport_id, league_id, team_name, team_name))
 
         events = cursor.fetchall()
