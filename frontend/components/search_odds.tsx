@@ -5,6 +5,7 @@ import SearchableInput from './ui/search_input';
 import MoneyLine from './ui/money_line';
 import Spread from './ui/spread';
 import Total from './ui/total';
+import { PeriodTitles } from '../utils/period_titles';
 
 interface DropdownOption {
   value: number;
@@ -372,7 +373,7 @@ const SearchOdds = () => {
                               {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 pt-4 space-y-4">
                                 <h3 className="text-xl font-medium text-gray-800 mb-2">
                                   {
-                                    index === 0 ? 'Full Game' : index === 1 ? '1st Half' : `Period ${index + 1}`
+                                    PeriodTitles(index)
                                   }:
                                 </h3>
                                 {item.money_line.length !== 0 && <li><MoneyLine data={item.money_line} period_id={item.period_id} update={update} search={true} handleGetChart={handleGetMoneyLineChart} memoizedClickedData={memoizedClickedMoneyLineData} /></li>}
