@@ -374,7 +374,7 @@ const SearchOdds = () => {
                                 <h3 className="text-xl font-medium text-gray-800 mb-2">
                                   {
                                     PeriodTitles(index)
-                                  }:
+                                  }
                                 </h3>
                                 {item.money_line.length !== 0 && <li><MoneyLine data={item.money_line} period_id={item.period_id} update={update} search={true} handleGetChart={handleGetMoneyLineChart} memoizedClickedData={memoizedClickedMoneyLineData} /></li>}
                                 {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetSpreadChart} memoizedClickedData={memoizedClickedSpreadData} search={true} /></li>}

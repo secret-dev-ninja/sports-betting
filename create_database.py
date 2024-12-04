@@ -54,7 +54,7 @@ class DatabaseManager:
                 id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 event_id BIGINT,
                 since TEXT,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             ''')
 
@@ -64,15 +64,15 @@ class DatabaseManager:
                 sport_id INTEGER,
                 league_id INTEGER,
                 league_name TEXT,
-                starts TIMESTAMPTZ,
+                starts TIMESTAMP,
                 home_team TEXT,
                 away_team TEXT,
                 event_type TEXT,
                 parent_id BIGINT,
                 resulting_unit TEXT,
                 is_have_odds BOOLEAN,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                last_updated TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 event_category TEXT
             );
             ''')
@@ -83,12 +83,12 @@ class DatabaseManager:
                 event_id BIGINT,
                 period_number INTEGER,
                 period_status INTEGER,
-                cutoff TIMESTAMPTZ,
+                cutoff TIMESTAMP,
                 max_spread DECIMAL,
                 max_money_line DECIMAL,
                 max_total DECIMAL,
                 max_team_total DECIMAL,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 line_id BIGINT,
                 number INTEGER,
                 FOREIGN KEY (event_id) REFERENCES events (event_id) ON DELETE CASCADE,
@@ -98,7 +98,7 @@ class DatabaseManager:
 
             cur.execute('''
             CREATE TABLE IF NOT EXISTS money_lines (
-                time TIMESTAMPTZ NOT NULL,
+                time TIMESTAMP NOT NULL,
                 period_id BIGINT,
                 home_odds DECIMAL,
                 draw_odds DECIMAL,
@@ -110,7 +110,7 @@ class DatabaseManager:
 
             cur.execute('''
             CREATE TABLE IF NOT EXISTS spreads (
-                time TIMESTAMPTZ NOT NULL,
+                time TIMESTAMP NOT NULL,
                 period_id BIGINT,
                 handicap DECIMAL,
                 alt_line_id BIGINT,
@@ -123,7 +123,7 @@ class DatabaseManager:
 
             cur.execute('''
             CREATE TABLE IF NOT EXISTS totals (
-                time TIMESTAMPTZ NOT NULL,
+                time TIMESTAMP NOT NULL,
                 period_id BIGINT,
                 points DECIMAL,
                 alt_line_id BIGINT,
@@ -136,7 +136,7 @@ class DatabaseManager:
 
             cur.execute('''
             CREATE TABLE IF NOT EXISTS team_totals (
-                time TIMESTAMPTZ NOT NULL,
+                time TIMESTAMP NOT NULL,
                 period_id BIGINT,
                 team_type TEXT,
                 points DECIMAL,
@@ -155,7 +155,6 @@ class DatabaseManager:
             conn.commit()
             logger.info("All tables created or verified successfully.")
 
-            # Create indexes
             # Create indexes
             indexes = [
                 "CREATE INDEX IF NOT EXISTS idx_events_sport_id ON events(sport_id);",

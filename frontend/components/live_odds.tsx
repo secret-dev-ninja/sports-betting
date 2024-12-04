@@ -285,7 +285,7 @@ const LiveOddsDashboard = () => {
                             memoizedSelectedData.data.data.map((item: any, index: any) => (
                               <div key={index} className="border-t border-gray-200 pt-4">
                                 {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 space-y-4">
-                                  <h3 className="text-xl font-medium text-gray-800 mb-2">{PeriodTitles(index)}:</h3>
+                                  <h3 className="text-xl font-medium text-gray-800 mb-2">{PeriodTitles(index)}</h3>
                                   {item.money_line.length !== 0 && <li><MoneyLineTable data={item.money_line} update={update} search={true} period_id={item.period_id} handleGetChart={handleGetMoneyLineChart} memoizedClickedData={memoizedClickedMoneyLineData} /></li>}
                                   {item.spread.length !== 0 && <li><Spread item={item} update={update} handleGetChart={handleGetSpreadChart} memoizedClickedData={memoizedClickedSpreadData} /></li>}
                                   {item.total.length !== 0 && <li><Total item={item.total} period_id={item.period_id} handleGetChart={handleGetTotalChart} memoizedClickedData={memoizedClickedTotalData} /></li>}

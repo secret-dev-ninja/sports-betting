@@ -151,8 +151,7 @@ class OddsCollector:
         if cur is None:
             cur = conn.cursor()
         
-        if self.db_manager.get_since():
-            self.db_manager.insert_log(conn, event['event_id'], self.db_manager.get_since())
+        self.db_manager.insert_log(conn, event['event_id'], self.db_manager.get_since())
 
         try:
             # Determine event category
