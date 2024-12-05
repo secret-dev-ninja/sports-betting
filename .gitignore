@@ -2,5 +2,6 @@ node_modules
 /frontend/.next
 __pycache__
 /odds_collector.log
+/archive_data.log
 /.env_local
-/.env_
+/.env_server
