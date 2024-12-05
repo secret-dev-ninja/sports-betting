@@ -1,11 +1,12 @@
 import psycopg2
 import psycopg2.extras
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 import os
 from dotenv import load_dotenv
 import logging
+from logging.handlers import RotatingFileHandler
 import sys
 import time
 from config import DB_CONFIG
@@ -18,7 +19,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        # RotatingFileHandler('odds_collector.log', maxBytes=10*1024*1024, backupCount=5),
+        RotatingFileHandler('odds_collector.log', maxBytes=100*1024*1024, backupCount=5),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -88,9 +89,10 @@ class DatabaseManager:
                 ) VALUES (%s, %s, DEFAULT)
             ''', (event_id, since))
 
+            
             # Commit the transaction
             conn.commit()
-            print("Request log inserted successfully.")
+            # print("Request log inserted successfully.")
         except psycopg2.Error as e:
             # Rollback in case of an error
             conn.rollback()
@@ -136,7 +138,7 @@ class OddsCollector:
 
             if 'last' in data:
                 self.last_timestamp = data['last']
-                logger.info('set last_timestamp:' + str(self.last_timestamp))
+                # logger.info('set last_timestamp:' + str(self.last_timestamp))
             
             return data
         
@@ -372,7 +374,7 @@ def get_sports_ids():
         "x-rapidapi-key": os.getenv('PINNACLE_API_KEY')
     }
 
-    logger.info("Requesting sports list information from Pinnacle API")
+    # logger.info("Requesting sports list information from Pinnacle API")
 
     try:
         response = requests.get(url, headers=headers)
@@ -387,15 +389,19 @@ def get_sports_ids():
             if hasattr(e, 'response') and e.response is not None:
                 logger.error(f"Response content: {e.response.text}")
             return None
+    
+DELAY: float = 1 / float(os.getenv('RATE_LIMIT'))
 
-def store_sport_info(collector, sport_id):
+def store_sport_info(sport_id):
+    collector = OddsCollector()
+
     while True:
         try:
             collector.db_manager.clear_changes()
             data = collector.get_pinnacle_odds(sport_id)
             
             if not data or not data.get('events'):
-                logger.info("No new data received from API")
+                # logger.info("No new data received from API")
                 time.sleep(1)
                 continue
             
@@ -426,11 +432,9 @@ def store_sport_info(collector, sport_id):
                 conn.close()
             
         except Exception as e:
-            logger.error(f"Process failed: {e}")
+            logger.error(f"Process failed for sport {sport_id}: {e}")
         
-        time.sleep(1)
-
-DELAY: float = 1 / float(os.getenv('RATE_LIMIT'))
+        time.sleep(DELAY)
 
 semaphore = multiprocessing.Semaphore(int(os.getenv('MAX_CONCURRENT_REQUESTS')))
 
@@ -441,12 +445,16 @@ def process_sport_id(collector, sport_id):
 
 def main():
     logger.info("Starting odds collection process")
-    collector = OddsCollector()
     sport_ids = get_sports_ids()
 
-    logger.info("Starting multiprocessing...")
-    with multiprocessing.Pool(processes=9) as pool:
-        pool.starmap(process_sport_id, [(collector, sport_id) for sport_id in sport_ids])
+    if not sport_ids:
+        logger.error("Failed to get sport IDs")
+        return
+
+    logger.info(f"Starting collection for {len(sport_ids)} sports...")
+
+    with multiprocessing.Pool(processes=min(9, len(sport_ids))) as pool:
+        pool.map(store_sport_info, sport_ids)
     
 if __name__ == "__main__":
     try:
