@@ -163,7 +163,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                     ( SELECT s.home_odds, s.away_odds, s.time::timestamp as time, s.max_bet
                     FROM spreads s
                     JOIN periods p ON s.period_id = p.period_id
-                    WHERE s.period_id = %s AND s.handicap = %s 
+                    WHERE s.period_id = %s AND s.handicap = %s AND p.cutoff >= s.time
                     ORDER BY s.time DESC LIMIT 30 ) tmp 
                 ORDER BY
                     tmp.time ASC
@@ -195,7 +195,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                     ( SELECT ml.home_odds, ml.away_odds, ml.time::timestamp as time, ml.max_bet
                     FROM money_lines ml
                     JOIN periods p ON ml.period_id = p.period_id
-                    WHERE ml.period_id = %s 
+                    WHERE ml.period_id = %s AND p.cutoff >= ml.time
                     ORDER BY ml.time DESC LIMIT 30 ) tmp 
                 ORDER BY
                     tmp.time ASC
@@ -225,7 +225,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                     ( SELECT t.over_odds, t.under_odds, t.time::timestamp as time, t.max_bet
                     FROM totals t
                     JOIN periods p ON t.period_id = p.period_id
-                    WHERE t.period_id = %s and t.points = %s
+                    WHERE t.period_id = %s and t.points = %s AND p.cutoff >= t.time
                     ORDER BY t.time DESC LIMIT 30 ) tmp 
                 ORDER BY
                     tmp.time ASC
