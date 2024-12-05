@@ -64,7 +64,7 @@ async def receive_event(event_id: str):
         cursor.execute("""
             SELECT period_id
             FROM periods
-            WHERE event_id = %s;
+            WHERE event_id = %s ORDER BY period_number ASC;
         """, (event_id,))
 
         periods = cursor.fetchall()
