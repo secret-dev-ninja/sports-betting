@@ -6,6 +6,9 @@ import MoneyLine from './ui/money_line';
 import Spread from './ui/spread';
 import Total from './ui/total';
 import { PeriodTitles } from '../utils/period_titles';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { FaSync } from 'react-icons/fa';
 
 interface DropdownOption {
   value: number;
@@ -151,10 +154,10 @@ const SearchOdds = () => {
     }
   };
 
-  const handleGetDetailInfo = async (event_id: string, event: React.MouseEvent) => {
+  const handleGetDetailInfo = async (event_id: string, event: React.MouseEvent, reload: boolean = false) => {
     event.stopPropagation();
 
-    if (selectedData && selectedData.event_id === event_id) {
+    if (!reload && selectedData && selectedData.event_id === event_id) {
       setSelectedData(null);
       return;
     }
@@ -176,6 +179,7 @@ const SearchOdds = () => {
           event_id: event_id,
           data: data,
         });
+        reload && toast.success('Data reloaded successfully!');
       }
     } catch (error) {
       console.error('Error sending event_id:', error);
@@ -298,6 +302,7 @@ const SearchOdds = () => {
 
   return (
     <div className="max-w-6xl mx-auto">
+      <ToastContainer />
       <Card className="mb-6 mt-5">
         <CardContent variant="child">
           <div className="space-y-4">
@@ -361,7 +366,15 @@ const SearchOdds = () => {
 
                   {memoizedSelectedData && memoizedSelectedData.event_id === update.event_id && (
                     <div className="mt-6 p-6 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg shadow-xl w-full max-w-4xl mx-auto">
-                      <h4 className="text-2xl font-semibold text-gray-800 mb-4">Detailed Information</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-2xl font-semibold text-gray-800 mb-4">Detailed Information</h4>
+                        <button
+                          onClick={(event) => handleGetDetailInfo(update.event_id, event, true)}
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          <FaSync className="inline-block text-xl text-black" />
+                        </button>
+                      </div>
                       <div className="text-sm text-gray-700 space-y-6">
                         {memoizedSelectedData?.data?.data.length > 0 &&
                         memoizedSelectedData.data.data.some(
