@@ -82,13 +82,13 @@ async def receive_event(event_id: str):
                     ml.draw_odds,
                     ml.away_odds,
                     ml.max_bet,
-                    ml.time :: TIMESTAMP AS time
+                    ml.time AT TIME ZONE 'UTC' AS time
                 FROM
                     money_lines ml
                 JOIN periods p ON ml.period_id = p.period_id
                 WHERE
                     p.period_id = %s
-                    AND ml.time <= p.cutoff
+                    AND ml.time AT TIME ZONE 'UTC' <= p.cutoff
                 ORDER BY
                     ml.time DESC
                 LIMIT 1
@@ -101,13 +101,13 @@ async def receive_event(event_id: str):
                     s.home_odds,
                     s.away_odds,
                     s.max_bet,
-                    s.time :: TIMESTAMP AS time 
+                    s.time AT TIME ZONE 'UTC' AS time 
                 FROM
                     spreads s
                 JOIN periods P ON s.period_id = P.period_id 
                 WHERE
                     s.period_id = %s 
-                    AND P.cutoff >= s.time 
+                    AND P.cutoff >= s.time AT TIME ZONE 'UTC'
                 ORDER BY
                     s.handicap,
                     s.time DESC;
@@ -122,13 +122,13 @@ async def receive_event(event_id: str):
                     t.over_odds, 
                     t.under_odds, 
                     t.max_bet,
-                    t.time::timestamp as time
+                    t.time AT TIME ZONE 'UTC' AS time
                 FROM 
                     totals t
                 JOIN periods p ON t.period_id = p.period_id
                 WHERE 
                     t.period_id = %s
-                    AND p.cutoff >= t.time
+                    AND p.cutoff >= t.time AT TIME ZONE 'UTC'
                 ORDER BY 
                     t.points, t.time DESC;
             """, (period,))
@@ -160,10 +160,10 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                 SELECT
                     * 
                 FROM
-                    ( SELECT s.home_odds, s.away_odds, s.time::timestamp as time, s.max_bet
+                    ( SELECT s.home_odds, s.away_odds, s.time AT TIME ZONE 'UTC' AS time, s.max_bet
                     FROM spreads s
                     JOIN periods p ON s.period_id = p.period_id
-                    WHERE s.period_id = %s AND s.handicap = %s AND p.cutoff >= s.time
+                    WHERE s.period_id = %s AND s.handicap = %s AND p.cutoff >= s.time AT TIME ZONE 'UTC'
                     ORDER BY s.time DESC LIMIT 30 ) tmp 
                 ORDER BY
                     tmp.time ASC
@@ -192,10 +192,10 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                 SELECT
                     * 
                 FROM
-                    ( SELECT ml.home_odds, ml.away_odds, ml.time::timestamp as time, ml.max_bet
+                    ( SELECT ml.home_odds, ml.away_odds, ml.time AT TIME ZONE 'UTC' AS time, ml.max_bet
                     FROM money_lines ml
                     JOIN periods p ON ml.period_id = p.period_id
-                    WHERE ml.period_id = %s AND p.cutoff >= ml.time
+                    WHERE ml.period_id = %s AND p.cutoff >= ml.time AT TIME ZONE 'UTC'
                     ORDER BY ml.time DESC LIMIT 30 ) tmp 
                 ORDER BY
                     tmp.time ASC
@@ -222,10 +222,10 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                 SELECT
                     * 
                 FROM
-                    ( SELECT t.over_odds, t.under_odds, t.time::timestamp as time, t.max_bet
+                    ( SELECT t.over_odds, t.under_odds, t.time AT TIME ZONE 'UTC' AS time, t.max_bet
                     FROM totals t
                     JOIN periods p ON t.period_id = p.period_id
-                    WHERE t.period_id = %s and t.points = %s AND p.cutoff >= t.time
+                    WHERE t.period_id = %s and t.points = %s AND p.cutoff >= t.time AT TIME ZONE 'UTC'
                     ORDER BY t.time DESC LIMIT 30 ) tmp 
                 ORDER BY
                     tmp.time ASC
@@ -357,7 +357,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                     e.away_team,
                     e.league_name,
                     e.starts :: TIMESTAMP AS starts,
-                    l.created_at 
+                    l.created_at AT TIME ZONE 'UTC'
                 FROM
                     events e
                 JOIN api_request_logs l ON l.event_id = e.event_id 
@@ -365,7 +365,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                     e.sport_id = %s 
                     AND e.league_id = %s 
                     AND e.event_type = 'prematch' 
-                    AND l.created_at <= e.starts 
+                    AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
                 ORDER BY
                     e.event_id,
                     l.created_at DESC 
@@ -400,7 +400,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                     e.away_team,
                     e.league_name,
                     e.starts::TIMESTAMP AS starts,
-                    l.created_at
+                    l.created_at AT TIME ZONE 'UTC'
                 FROM
                     events e
                 JOIN api_request_logs l ON l.event_id = e.event_id
@@ -408,7 +408,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                     e.sport_id = %s
                     AND (e.home_team = %s OR e.away_team = %s)
                     AND e.event_type = 'prematch'
-                    AND l.created_at <= e.starts 
+                    AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
                 ORDER BY
                     e.event_id,
                     l.created_at DESC
@@ -445,7 +445,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                     e.away_team,
                     e.league_name,
                     e.starts :: TIMESTAMP AS starts,
-                    l.created_at 
+                    l.created_at AT TIME ZONE 'UTC'
                 FROM
                     events e
                     JOIN api_request_logs l ON l.event_id = e.event_id 
@@ -454,7 +454,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                     AND e.league_id = %s 
                     AND ( e.home_team = %s OR e.away_team = %s ) 
                     AND e.event_type = 'prematch' 
-                    AND l.created_at <= e.starts 
+                    AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
                 ORDER BY
                     e.event_id,
                     l.created_at DESC
