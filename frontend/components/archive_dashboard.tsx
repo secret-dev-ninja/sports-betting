@@ -11,7 +11,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { FaSync } from 'react-icons/fa';
 
 interface DropdownOption {
-  value: number;
+  value: string;
   label: string;
 }
 
@@ -24,16 +24,11 @@ interface Update {
   updated_at: string;
 }
 
-interface DropdownOption {
-  value: number;
-  label: string;
-}
-
 const SearchOdds = () => {
   const [sportsOpts, setSportsOpts] = useState<DropdownOption[]>([]);
-  const [sports, setSports] = useState<number>();
+  const [sports, setSports] = useState<string>();
   const [leagueOpts, setLeaguesOps] = useState<DropdownOption[]>([]);
-  const [league, setLeague] = useState<number>();
+  const [league, setLeague] = useState<string>();
   const [teamOpts, setTeamOpts] = useState<DropdownOption[]>([]);
   const [updates, setUpdates] = useState<Update[]>([]);
   const [selectedData, setSelectedData] = useState<any | null>(null);
@@ -45,12 +40,12 @@ const SearchOdds = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  const fetchOpts = async (sport_id?: number, league_id?: number) => {
+  const fetchOpts = async (sport_name?: string, league_name?: string) => {
     try {
-      const url = sport_id && league_id
-        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_id=${sport_id}&league_id=${league_id}`
-        : sport_id
-        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_id=${sport_id}`
+      const url = sport_name && league_name
+        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_name=${sport_name}&league_name=${league_name}`
+        : sport_name
+        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_name=${sport_name}`
         : `${process.env.NEXT_APP_OPTS_API_URL}`;
 
       const response = await fetch(url, {
@@ -62,10 +57,10 @@ const SearchOdds = () => {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
-        if (sport_id && league_id) {
+        if (sport_name && league_name) {
           setTeamOpts(data);
         }
-        else if (sport_id) {
+        else if (sport_name) {
           setLeaguesOps(data.leagues);
           setTeamOpts(data.teams);
         }
@@ -93,12 +88,12 @@ const SearchOdds = () => {
     }
   }, [updates]);
 
-  const handleDropdownSportsSelect = (value: number) => {
+  const handleDropdownSportsSelect = (value: string) => {
     setSports(value);
     fetchOpts(value);
     setUpdates([]);
     handlePageChange(1);
-    setLeague(0);
+    setLeague('');
   };
 
   const handleDropdownLeagueSelect = async (value: DropdownOption) => {
@@ -132,8 +127,8 @@ const SearchOdds = () => {
     handlePageChange(1);
 
     const url = league ? 
-                `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${league}&team_name=${value.label}` : 
-                `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&team_name=${value.label}`;
+                `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&league_name=${league}&team_name=${value.value}` : 
+                `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&team_name=${value.value}`;
     try {
       const response = await fetch(
         url,

@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
-import SearchOdds from '@/components/search_odds';
-import LiveOddsDashboard from '@/components/live_odds';
+import React, { useEffect, useState } from 'react';
+import ArchiveDashboard from '@/components/archive_dashboard';
+import { useRouter } from 'next/router';
+// import LiveOddsDashboard from '@/components/live_odds';
 import { Bell } from "lucide-react";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const OddsDashboard = () => {
-  const [navbar, setNavbar] = useState<String>('live');
+  const router = useRouter();
+  const [navbar, setNavbar] = useState<String>('archive');
+
+  useEffect(() => {
+    router.push('/archive');
+  }, []);
 
   return (
     <>
@@ -22,18 +28,20 @@ const OddsDashboard = () => {
                 </div>
               </div>
               <div className="flex-1 flex justify-start ml-10 space-x-6">
-                <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer" onClick={() => setNavbar('live')}>
+                {/* <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer" onClick={() => setNavbar('live')}>
                   Live
-                </div>
-                <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer" onClick={() => setNavbar('search')}>
-                  Search
+                </div> */}
+                {/* <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer" onClick={() => setNavbar('archive')}> */}
+                <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer" onClick={() => setNavbar('archive')}>
+                  Archive
                 </div>
               </div>
             </div>
           </div>
         </nav>
         <div>
-          { navbar === 'live' ? <LiveOddsDashboard /> : <SearchOdds /> }
+          {/* { navbar === 'live' ? <LiveOddsDashboard /> : <SearchOdds /> } */}
+          <ArchiveDashboard />
         </div>
       </div>
     </>

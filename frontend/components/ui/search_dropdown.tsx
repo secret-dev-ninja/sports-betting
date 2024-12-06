@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DropdownOption {
-  value: number;
+  value: string;
   label: string;
 }
 
 interface SearchableDropdownProps {
   options: DropdownOption[];
   placeholder: string;
-  onSelect: (value: number) => void;
+  onSelect: (value: string) => void;
   viewCount?: number; // New prop to set visible item count
 }
 

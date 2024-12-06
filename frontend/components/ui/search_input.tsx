@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface InputOption {
-  value: number;
+  value: string;
   label: string;
 }
 
@@ -47,6 +47,7 @@ const SearchableInput: React.FC<SearchableInputProps> = ({
     };
   }, []);
 
+  console.log('options', options);
   const filteredOptions = options.filter(option =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
