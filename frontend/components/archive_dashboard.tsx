@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import { Card, CardContent } from './ui/card';
 import SearchableDropdown from './ui/search_dropdown';
 import SearchableInput from './ui/search_input';
@@ -40,6 +41,8 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
+  const router = useRouter();
+
   const fetchOpts = async (sport_name?: string, league_name?: string) => {
     try {
       const url = sport_name && league_name
@@ -78,6 +81,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
     setUpdates(data || []);
   }, [data]);
 
+
   useEffect(() => {
     if (!sportsOpts.length) {
       fetchOpts();
@@ -85,6 +89,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
   }, [sportsOpts]);
 
   useEffect(() => {
+    console.log('updates:', updates);
     if (updates.length > 0) {
       handleGetDetailInfo(updates[0].event_id, {
         stopPropagation: () => {},
@@ -99,12 +104,13 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
     setUpdates([]);
     handlePageChange(1);
     setLeague('');
+    
+    // router.push('/');
   };
 
   const handleDropdownLeagueSelect = async (value: DropdownOption) => {
     setLeague(value.value); 
     fetchOpts(sports, value.value);
-    console.log(sports, value.value);
     handlePageChange(1);
     
     try {
@@ -120,7 +126,6 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
-        console.log('data:', data);
         setUpdates(data);
       }
     } catch (e) {
@@ -130,28 +135,36 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
 
   const handleDropdownTeamSelect = async (value: DropdownOption) => {
     handlePageChange(1);
+    const pathname = router.pathname;
 
-    const url = league ? 
+    router.push(`/teams/${value.value}`, undefined, { 
+      shallow: true,
+      scroll: false 
+    });
+
+    if (pathname === '/teams/[team]') {
+      const url = league ? 
                 `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&league_name=${league}&team_name=${value.value}` : 
-                `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&team_name=${value.value}`;
-    try {
-      const response = await fetch(
-        url,
-        {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+                sports ? `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&team_name=${value.value}`: `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=&league_name=&team_name=${value.value}`;
+      try {
+        const response = await fetch(
+          url,
+          {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+        if (!response.ok) {
+          console.error('Error:', response.status, response.statusText);
+        } else {
+          const data = await response.json();
+          console.log('data:', data);
+          setUpdates(data);
         }
-      );
-      if (!response.ok) {
-        console.error('Error:', response.status, response.statusText);
-      } else {
-        const data = await response.json();
-        console.log('data:', data);
-        setUpdates(data);
+      } catch (e) {
+          console.log(e);
+        }
       }
-    } catch (e) {
-      console.log(e);
-    }
   };
 
   const handleGetDetailInfo = async (event_id: string, event: React.MouseEvent, reload: boolean = false) => {
