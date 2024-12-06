@@ -11,3 +11,15 @@ export function PeriodTitles(index: number) {
 
   return titles[index];
 }
+
+export function setLocalStorage(key: string, value: any) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(key, value);
+  }
+}
+
+export function getLocalStorage(key: string) {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(key);
+  }
+}

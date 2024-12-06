@@ -47,7 +47,6 @@ const SearchableInput: React.FC<SearchableInputProps> = ({
     };
   }, []);
 
-  console.log('options', options);
   const filteredOptions = options.filter(option =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
