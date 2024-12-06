@@ -51,7 +51,7 @@ const ChartComponent: React.FC<ChartComponentProps> = React.memo(({ data }) => {
         const normalizedData: ChartData[] = [];
         
         let currentTime = minTime;
-        while (currentTime <= maxTime) {
+        while (currentTime < maxTime) {
             // Find the surrounding data points
             const currentTimeObj = new Date(currentTime);
             
@@ -98,6 +98,9 @@ const ChartComponent: React.FC<ChartComponentProps> = React.memo(({ data }) => {
             normalizedData.push(interpolatedPoint);
             currentTime += ONE_MINUTE;
         }
+
+        // Add the actual last point from raw data
+        normalizedData.push({ ...sortedData[sortedData.length - 1] });
 
         return normalizedData;
     };
