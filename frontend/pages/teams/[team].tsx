@@ -1,19 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import ArchiveDashboard from '@/components/archive_dashboard';
+import { useRouter } from 'next/router';
 import { Bell } from "lucide-react";
-import dotenv from "dotenv";
-// import { useRouter } from 'next/router';
-// import LiveOddsDashboard from '@/components/live_odds';
 
-dotenv.config();
+const Teams = () => {
+  const router = useRouter();
+  const [data, setData] = useState<any[]>([]);
+  const { team } = router.query;
 
-const OddsDashboard = () => {
-  // const router = useRouter();
-  // const [navbar, setNavbar] = useState<String>('archive');
+  const fetchData = async (team_name: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_APP_EVENT_API_URL}?sport_name=&league_name=&team_name=${team_name}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-  // useEffect(() => {
-  //   router.push('/archive');
-  // }, []);
+      if (!response.ok) {
+        console.error('Error:', response.status, response.statusText);
+      } else {
+        const data = await response.json();
+        console.log('data:', data);
+        setData(data);
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  useEffect(() => {
+    if (team) {
+      fetchData(team as string);
+    } 
+  }, [team]);
 
   return (
     <>
@@ -40,11 +58,12 @@ const OddsDashboard = () => {
           </div>
         </nav>
         <div>
-          <ArchiveDashboard data={[]} />
+          <ArchiveDashboard data={data} />
         </div>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default OddsDashboard;
+export default Teams;
+

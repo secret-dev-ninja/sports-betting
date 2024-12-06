@@ -343,12 +343,12 @@ async def receive_options_event(sport_name: str = None, league_name: str = 'l'):
         return result
 
 @app.get("/receive-event-info")
-async def receive_event_info(sport_name: str, league_name: str = 'l', team_name: str = 't'):
+async def receive_event_info(sport_name: str, league_name: str = '', team_name: str = ''):    
     conn = psycopg2.connect(**DB_CONFIG)
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     cursor = conn.cursor()
 
-    if league_name != 'l' and team_name == 't':
+    if league_name != '' and team_name == '':
         cursor.execute("""
             SELECT * FROM (
                 SELECT DISTINCT ON (e.event_id) e.event_id, 
@@ -387,7 +387,7 @@ async def receive_event_info(sport_name: str, league_name: str = 'l', team_name:
         ]
         
         return result
-    elif league_name == 'l' and team_name != 't':
+    elif sport_name != '' and league_name == '' and team_name != '':
         cursor.execute("""
             SELECT * FROM (
                 SELECT DISTINCT ON (e.event_id) e.event_id,
@@ -425,7 +425,7 @@ async def receive_event_info(sport_name: str, league_name: str = 'l', team_name:
         ]
         
         return result  
-    elif league_name != 'l' and team_name != 't':
+    elif league_name != '' and team_name != '':
         cursor.execute("""
             SELECT
             * 
@@ -468,13 +468,54 @@ async def receive_event_info(sport_name: str, league_name: str = 'l', team_name:
         ]
         
         return result
+    elif sport_name == '' and league_name == '' and team_name != '':
+        cursor.execute("""
+            SELECT
+            * 
+            FROM
+            (
+                SELECT DISTINCT ON (e.event_id) e.event_id,
+                    e.home_team,
+                    e.away_team,
+                    e.league_name,
+                    e.starts :: TIMESTAMP AS starts,
+                    l.created_at AT TIME ZONE 'UTC'
+                FROM
+                    events e
+                    JOIN api_request_logs l ON l.event_id = e.event_id 
+                WHERE
+                    e.home_team_uname = %s OR e.away_team_uname = %s 
+                    AND e.event_type = 'prematch' 
+                    AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
+                ORDER BY
+                    e.event_id,
+                    l.created_at DESC
+            ) AS tmp 
+            ORDER BY
+                tmp.starts DESC;
+        """, (team_name, team_name))
 
-@app.get("/archive/{sport_name}/{league_name}/{team_name}/{event_id}")
-async def archive_data(sport_name: str, league_name: str = 'l', team_name: str = 't', event_id: str = 'e'):
-    if sport_name and event_id != 'e':
-        return await receive_event(event_id)
-    else:
-        return await receive_event_info(sport_name, league_name, team_name)
+        events = cursor.fetchall()
+        
+        result = [
+            {
+                'event_id': event[0],
+                'home_team': event[1],
+                'away_team': event[2],
+                'league_name': event[3],
+                'starts': event[4],
+                'updated_at': event[5],
+            } for event in events
+        ]
+        
+        return result
+
+# @app.get("/archive/{sport_name}/{league_name}/{team_name}/{event_id}")
+# async def archive_data(sport_name: str, league_name: str = 'l', team_name: str = 't', event_id: str = 'e'):
+#     if sport_name and event_id != 'e':
+#         return await receive_event(event_id)
+#     else:
+#         return await receive_event_info(sport_name, league_name, team_name)
     
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

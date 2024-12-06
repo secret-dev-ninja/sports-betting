@@ -5,6 +5,5 @@ namespace NodeJS {
         NEXT_APP_CHART_API_URL: string;
         NEXT_APP_OPTS_API_URL: string;
         NEXT_APP_EVENT_API_URL: string;
-        NEXT_APP_ARCHIVE_API_URL: string;
     }
 }

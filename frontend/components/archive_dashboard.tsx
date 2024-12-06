@@ -24,7 +24,7 @@ interface Update {
   updated_at: string;
 }
 
-const SearchOdds = () => {
+const ArchiveDashboard = ({ data }: { data: Update[] }) => {
   const [sportsOpts, setSportsOpts] = useState<DropdownOption[]>([]);
   const [sports, setSports] = useState<string>();
   const [leagueOpts, setLeaguesOps] = useState<DropdownOption[]>([]);
@@ -72,6 +72,11 @@ const SearchOdds = () => {
       console.log(e);
     }
   };
+
+  useEffect(() => {
+    console.log('data:', data);
+    setUpdates(data || []);
+  }, [data]);
 
   useEffect(() => {
     if (!sportsOpts.length) {
@@ -433,4 +438,4 @@ const SearchOdds = () => {
   );
 };
 
-export default SearchOdds;
+export default ArchiveDashboard;
