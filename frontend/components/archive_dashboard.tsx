@@ -104,7 +104,7 @@ const SearchOdds = () => {
     
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_EVENT_API_URL}?sport_id=${sports}&league_id=${value.value}`,
+        `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&league_name=${value.value}`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },

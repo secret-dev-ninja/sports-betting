@@ -441,7 +441,7 @@ async def receive_event_info(sport_name: str, league_name: str = 'l', team_name:
                     events e
                     JOIN api_request_logs l ON l.event_id = e.event_id 
                 WHERE
-                    e.sport_id = %s 
+                    e.sport_uname = %s 
                     AND e.league_uname = %s 
                     AND ( e.home_team_uname = %s OR e.away_team_uname = %s ) 
                     AND e.event_type = 'prematch' 

@@ -9,11 +9,11 @@ dotenv.config();
 
 const OddsDashboard = () => {
   const router = useRouter();
-  const [navbar, setNavbar] = useState<String>('archive');
+  // const [navbar, setNavbar] = useState<String>('archive');
 
-  useEffect(() => {
-    router.push('/archive');
-  }, []);
+  // useEffect(() => {
+  //   router.push('/archive');
+  // }, []);
 
   return (
     <>
@@ -32,7 +32,7 @@ const OddsDashboard = () => {
                   Live
                 </div> */}
                 {/* <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer" onClick={() => setNavbar('archive')}> */}
-                <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer" onClick={() => setNavbar('archive')}>
+                <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer">
                   Archive
                 </div>
               </div>
@@ -40,7 +40,6 @@ const OddsDashboard = () => {
           </div>
         </nav>
         <div>
-          {/* { navbar === 'live' ? <LiveOddsDashboard /> : <SearchOdds /> } */}
           <ArchiveDashboard />
         </div>
       </div>
