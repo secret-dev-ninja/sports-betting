@@ -19,7 +19,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        RotatingFileHandler('odds_collector.log', maxBytes=100*1024*1024, backupCount=5),
+        RotatingFileHandler('odds_collector.log', maxBytes=100*1024*1024, backupCount=5, delay=True),
         logging.StreamHandler(sys.stdout)
     ]
 )
