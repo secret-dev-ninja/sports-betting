@@ -53,6 +53,9 @@ def get_db_connection():
         logger.error(f"Database connection error: {e}")
         raise HTTPException(status_code=500, detail="Database connection failed")
 
+def get_uname(text: str) -> str:
+    return text.lower().replace('(', '').replace(')', '').replace(' ', '-').replace('---', '-')
+
 @app.get("/receive-event")
 async def receive_event(event_id: str):
     try:
@@ -245,8 +248,8 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
             raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
 
 @app.get("/receive-options-event")
-async def receive_options_event(sport_id: int = None, league_id: int = None):
-    if sport_id is None and league_id is None:
+async def receive_options_event(sport_name: str = None, league_name: str = 'l'):
+    if sport_name is None and league_name == 'l':
         url = os.getenv('PINNACLE_API_SPORTS_URL')
         
         headers = {
@@ -261,24 +264,24 @@ async def receive_options_event(sport_id: int = None, league_id: int = None):
             response.raise_for_status()
             data = response.json()
             
-            sports =  [{"value": sport['id'], "label": sport['name']} for sport in data]
-            return sports
+            sports =  [{"value": get_uname(sport['name']), "label": sport['name']} for sport in data]
+            return sports   
             
         except requests.exceptions.RequestException as e:
                 logger.error(f"API request failed: {e}")
                 if hasattr(e, 'response') and e.response is not None:
                     logger.error(f"Response content: {e.response.text}")
                 return None
-    elif sport_id is not None and league_id is None:
+    elif sport_name is not None and league_name == 'l':
         conn = psycopg2.connect(**DB_CONFIG)
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT DISTINCT league_id, league_name
+            SELECT DISTINCT league_uname, league_name
             FROM events
-            WHERE sport_id = %s ORDER BY league_name ASC;
-        """, (sport_id,))
+            WHERE sport_uname = %s ORDER BY league_name ASC;
+        """, (sport_name,))
 
         leagues = cursor.fetchall()
         leaguesOpts = [{
@@ -287,69 +290,65 @@ async def receive_options_event(sport_id: int = None, league_id: int = None):
         } for league in leagues]
 
         cursor.execute("""
-        SELECT DISTINCT team
+        SELECT DISTINCT team_name, team
         FROM (
-            SELECT home_team AS team
+            SELECT home_team_uname AS team_name, home_team AS team
             FROM events
-            WHERE sport_id = %s
+            WHERE sport_uname = %s
             UNION ALL
-            SELECT away_team AS team
+            SELECT away_team_uname AS team_name, away_team AS team
             FROM events
-            WHERE sport_id = %s
+            WHERE sport_uname = %s
         ) AS combined_teams ORDER BY team ASC;
-        """, (sport_id, sport_id))
+        """, (sport_name, sport_name))
     
         teams = cursor.fetchall()
         teamsOpts = [{
             'value': team[0],
-            'label': team[0],
+            'label': team[1],
         } for team in teams]
 
         return {
             'leagues': leaguesOpts,
             'teams': teamsOpts
         }
-    elif sport_id is not None and league_id is not None:
+    elif sport_name is not None and league_name is not None:
         conn = psycopg2.connect(**DB_CONFIG)
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = conn.cursor()
 
-        logger.info('starting receive-options...%s, %s', sport_id, league_id)
+        logger.info('starting receive-options...%s, %s', sport_name, league_name)
 
         cursor.execute("""
-        SELECT DISTINCT team
+        SELECT DISTINCT team_name, team
         FROM (
-            SELECT home_team AS team
+            SELECT home_team_uname AS team_name, home_team AS team
             FROM events
-            WHERE sport_id = %s
-            AND league_id = %s
+            WHERE sport_uname = %s
+            AND league_uname = %s
             UNION ALL
-            SELECT away_team AS team
+            SELECT away_team_uname AS team_name, away_team AS team
             FROM events
-            WHERE sport_id = %s
-            AND league_id = %s
+            WHERE sport_uname = %s
+            AND league_uname = %s
         ) AS combined_teams ORDER BY team ASC;
-        """, (sport_id, league_id, sport_id, league_id))
+        """, (sport_name, league_name, sport_name, league_name))
 
         teams = cursor.fetchall()
         result = [{
             'value': team[0],
-            'label': team[0],
+            'label': team[1],
         } for team in teams]
 
         return result
 
 @app.get("/receive-event-info")
-async def receive_event_info(sport_id: int, league_id: int = None, team_name: str = None):
+async def receive_event_info(sport_name: str, league_name: str = 'l', team_name: str = 't'):
     conn = psycopg2.connect(**DB_CONFIG)
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     cursor = conn.cursor()
 
-    if team_name is None:
-        conn = psycopg2.connect(**DB_CONFIG)
-        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-        cursor = conn.cursor()
-
+    if league_name != 'l' and team_name == 't':
         cursor.execute("""
             SELECT * FROM (
                 SELECT DISTINCT ON (e.event_id) e.event_id, 
@@ -362,8 +361,8 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                     events e
                 JOIN api_request_logs l ON l.event_id = e.event_id 
                 WHERE
-                    e.sport_id = %s 
-                    AND e.league_id = %s 
+                    e.sport_uname = %s 
+                    AND e.league_uname = %s 
                     AND e.event_type = 'prematch' 
                     AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
                 ORDER BY
@@ -372,7 +371,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
             ) AS tmp 
             ORDER BY
                 tmp.starts DESC;
-        """, (sport_id, league_id))
+        """, (sport_name, league_name))
 
         events = cursor.fetchall()
         
@@ -388,11 +387,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         ]
         
         return result
-    elif league_id is None and team_name is not None:
-        conn = psycopg2.connect(**DB_CONFIG)
-        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-        cursor = conn.cursor()
-
+    elif league_name == 'l' and team_name != 't':
         cursor.execute("""
             SELECT * FROM (
                 SELECT DISTINCT ON (e.event_id) e.event_id,
@@ -405,8 +400,8 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                     events e
                 JOIN api_request_logs l ON l.event_id = e.event_id
                 WHERE
-                    e.sport_id = %s
-                    AND (e.home_team = %s OR e.away_team = %s)
+                    e.sport_uname = %s
+                    AND (e.home_team_uname = %s OR e.away_team_uname = %s)
                     AND e.event_type = 'prematch'
                     AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
                 ORDER BY
@@ -415,7 +410,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
             ) AS tmp
             ORDER BY 
                 tmp.starts DESC;
-        """, (sport_id, team_name, team_name))
+        """, (sport_name, team_name, team_name))
 
         events = cursor.fetchall()
         result = [
@@ -430,11 +425,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         ]
         
         return result  
-    else:
-        conn = psycopg2.connect(**DB_CONFIG)
-        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-        cursor = conn.cursor()
-
+    elif league_name != 'l' and team_name != 't':
         cursor.execute("""
             SELECT
             * 
@@ -451,8 +442,8 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
                     JOIN api_request_logs l ON l.event_id = e.event_id 
                 WHERE
                     e.sport_id = %s 
-                    AND e.league_id = %s 
-                    AND ( e.home_team = %s OR e.away_team = %s ) 
+                    AND e.league_uname = %s 
+                    AND ( e.home_team_uname = %s OR e.away_team_uname = %s ) 
                     AND e.event_type = 'prematch' 
                     AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
                 ORDER BY
@@ -461,7 +452,7 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
             ) AS tmp 
             ORDER BY
                 tmp.starts DESC;
-        """, (sport_id, league_id, team_name, team_name))
+        """, (sport_name, league_name, team_name, team_name))
 
         events = cursor.fetchall()
         
@@ -478,6 +469,13 @@ async def receive_event_info(sport_id: int, league_id: int = None, team_name: st
         
         return result
 
+@app.get("/archive/{sport_name}/{league_name}/{team_name}/{event_id}")
+async def archive_data(sport_name: str, league_name: str = 'l', team_name: str = 't', event_id: str = 'e'):
+    if sport_name and event_id != 'e':
+        return await receive_event(event_id)
+    else:
+        return await receive_event_info(sport_name, league_name, team_name)
+    
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     logger.info('starting the websocket backend...')

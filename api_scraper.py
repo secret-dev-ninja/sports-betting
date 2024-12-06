@@ -148,7 +148,7 @@ class OddsCollector:
                 logger.error(f"Response content: {e.response.text}")
             return None
 
-    def store_event(self, conn, event: Dict[str, Any], cur=None) -> None:
+    def store_event(self, conn, event: Dict[str, Any], sport_name: str, cur=None) -> None:
         """Store event and its related data in the database"""
         if cur is None:
             cur = conn.cursor()
@@ -238,18 +238,18 @@ class OddsCollector:
             # Insert or update event
             cur.execute('''
             INSERT INTO events (
-                event_id, sport_id, league_id, league_name, starts, home_team, 
-                away_team, event_type, parent_id, resulting_unit, is_have_odds, event_category
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                event_id, sport_id, sport_uname, league_id, league_name, league_uname, starts, home_team, home_team_uname,
+                away_team, away_team_uname, event_type, parent_id, resulting_unit, is_have_odds, event_category
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (event_id) DO UPDATE SET
                 last_updated = CURRENT_TIMESTAMP,
                 home_team = EXCLUDED.home_team,
                 away_team = EXCLUDED.away_team
             ''', (
-                event['event_id'], event['sport_id'], event['league_id'],
-                event['league_name'], event['starts'], event['home'],
-                event['away'], event['event_type'], event['parent_id'],
-                event['resulting_unit'], event['is_have_odds'], event_category
+                event['event_id'], event['sport_id'], get_uname(sport_name), event['league_id'],
+                event['league_name'], get_uname(event['league_name']), event['starts'], event['home'],
+                get_uname(event['home']), event['away'], get_uname(event['away']), event['event_type'],
+                event['parent_id'], event['resulting_unit'], event['is_have_odds'], event_category
             ))
             
             # Process periods
@@ -366,6 +366,9 @@ class OddsCollector:
             logger.error(f"Error storing event {event['event_id']}: {str(e)}")
             raise
 
+def get_uname(text: str) -> str:
+    return text.lower().replace('(', '').replace(')', '').replace(' ', '-').replace('---', '-')
+
 def get_sports_ids():
     url = os.getenv('PINNACLE_API_SPORTS_URL')
         
@@ -411,7 +414,7 @@ def store_sport_info(sport_id):
             try:
                 for event in data['events']:
                     try:
-                        collector.store_event(conn, event, cur)
+                        collector.store_event(conn, event, data['sport_name'], cur)
                     except Exception as e:
                         logger.error(f"Error processing event: {e}")
                         continue
