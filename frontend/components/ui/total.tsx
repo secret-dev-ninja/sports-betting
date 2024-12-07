@@ -12,8 +12,11 @@ const Total = ({ item, search, period_id, handleGetChart, memoizedClickedData }:
             <tr>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Points</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Over Odds</th>
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Over VF</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Under Odds</th>
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Under VF</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Max Bet</th>
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Vig</th>
               {search && (
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">
                   Timestamp
@@ -24,16 +27,19 @@ const Total = ({ item, search, period_id, handleGetChart, memoizedClickedData }:
           <tbody className="bg-white divide-y divide-gray-200">
             {item.map((tt, tIndex) => (
               <React.Fragment key={tIndex}>
-                <tr className="bg-white hover:bg-gray-100 transition cursor-pointer" onClick={(event) => handleGetChart(period_id, tt[0], event)}>
-                  <td className="py-2 px-4 text-sm text-gray-600">{tt[0]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{tt[1]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{tt[2]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{tt[3]}</td>
-                  { search ? <td className="py-2 px-4 text-sm text-gray-600">{tt[4].replace('T', ' ')}</td>: '' }
+                <tr className="bg-white hover:bg-gray-100 transition cursor-pointer" onClick={(event) => handleGetChart(period_id, tt['points'], event)}>
+                  <td className="py-2 px-4 text-sm text-gray-600">{tt['points']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{tt['over_odds']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{tt['over_vf']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{tt['under_odds']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{tt['under_vf']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{tt['max_bet']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{tt['vig']} %</td>
+                  { search ? <td className="py-2 px-4 text-sm text-gray-600">{tt['time'].replace('T', ' ')}</td>: '' }
                 </tr>
                 {
                     memoizedClickedData &&
-                    memoizedClickedData.period_id === period_id && memoizedClickedData.points === tt[0] && (
+                    memoizedClickedData.period_id === period_id && memoizedClickedData.points === tt['points'] && (
                       <tr>
                         <td colSpan={8}>
                           <ChartComponent data={memoizedClickedData.data.data} />

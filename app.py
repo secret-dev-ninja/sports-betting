@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from config import DB_CONFIG
 import requests
 import os
+from utils import get_uname, get_sum_vig, calculate_vig_free_odds, get_no_vig_odds_multiway
 
 load_dotenv()
 
@@ -53,9 +54,6 @@ def get_db_connection():
         logger.error(f"Database connection error: {e}")
         raise HTTPException(status_code=500, detail="Database connection failed")
 
-def get_uname(text: str) -> str:
-    return text.lower().replace('(', '').replace(')', '').replace(' ', '-').replace('---', '-')
-
 @app.get("/receive-event")
 async def receive_event(event_id: str):
     try:
@@ -96,7 +94,23 @@ async def receive_event(event_id: str):
                     ml.time DESC
                 LIMIT 1
             """, (period))
-            money_line = cursor.fetchall()
+            money_lines = cursor.fetchall()
+            money_line_results = [
+                {
+                    'home': money_line[0],
+                    'home_vf': get_no_vig_odds_multiway([money_line[0], money_line[1], money_line[2]])[0],
+                    'draw': money_line[1],
+                    'away': money_line[2],
+                    'away_vf': get_no_vig_odds_multiway([money_line[0], money_line[1], money_line[2]])[2],
+                    'max_bet': money_line[3],
+                    'vig': get_sum_vig('moneyline', [
+                        money_line[0],
+                        money_line[1],
+                        money_line[2]
+                    ]),
+                    'time': money_line[4]
+                } for money_line in money_lines
+            ]
 
             # Query to get the spread data for a specific period_id
             cursor.execute("""
@@ -115,7 +129,19 @@ async def receive_event(event_id: str):
                     s.handicap,
                     s.time DESC;
             """, (period,))
-            spread = cursor.fetchall()
+            spreads = cursor.fetchall()
+            spread_results = [
+                {
+                    "handicap": spread[0],
+                    "home_odds": spread[1],
+                    "home_vf": str(calculate_vig_free_odds(spread[1], spread[2])[0]),
+                    "away_odds": spread[2],
+                    "away_vf": str(calculate_vig_free_odds(spread[1], spread[2])[1]),
+                    "max_bet": spread[3],
+                    "vig": get_sum_vig('spread', [spread[1], spread[2]]),
+                    "time": spread[4]
+                } for spread in spreads
+            ]
 
             # Query to get the total data for a specific period_id
             cursor.execute("""
@@ -135,14 +161,26 @@ async def receive_event(event_id: str):
                 ORDER BY 
                     t.points, t.time DESC;
             """, (period,))
-            total = cursor.fetchall()
+            totals = cursor.fetchall()
+            total_results = [
+                {
+                    "points": total[0],
+                    "over_odds": total[1],
+                    "over_vf": str(calculate_vig_free_odds(total[1], total[2])[0]),
+                    "under_odds": total[2],
+                    "under_vf": str(calculate_vig_free_odds(total[1], total[2])[1]),
+                    "max_bet": total[3],
+                    "vig": get_sum_vig('total', [total[1], total[2]]),
+                    "time": total[4]
+                } for total in totals
+            ]
 
             # Append the result as a dictionary
             result.append({
                 "period_id": period,
-                "money_line": money_line or [],
-                "spread": spread or [],
-                "total": total or []
+                "money_line": money_line_results,
+                "spread": spread_results,
+                "total": total_results
             })
 
         return {"message": "success", "data": result}

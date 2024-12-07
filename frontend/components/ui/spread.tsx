@@ -2,7 +2,7 @@ import * as React from 'react';
 import ChartComponent from './chart';
 
 interface SpreadItem {
-  spread: [number, string, string, string, string][];
+  spread: { handicap: number, home_odds: string, home_vf: string, away_odds: string, away_vf: string, vig: string, max_bet: string, time: string }[];
   period_id: string[];
 }
 
@@ -25,8 +25,11 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
             <tr>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{ update.home_team } Handicap</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Home Odds</th>
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Home VF</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{ update.away_team } Handicap</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Away Odds</th>
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Away VF</th>
+              <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Vig</th>
               <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Limit</th>
               {search && (
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">
@@ -40,23 +43,26 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
               <React.Fragment key={sIndex}>
                 <tr
                   className="bg-white hover:bg-gray-100 transition cursor-pointer"
-                  onClick={(event) => handleGetChart(item.period_id[0], sp[0], event)}
+                  onClick={(event) => handleGetChart(item.period_id[0], sp['handicap'], event)}
                 >
-                  <td className="py-2 px-4 text-sm text-gray-600">{sp[0]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{sp[1]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{-1 * sp[0]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{sp[2]}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{sp[3]}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{sp['handicap']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{sp['home_odds']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{sp['home_vf']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{-1 * sp['handicap']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{sp['away_odds']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{sp['away_vf']}</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{sp['vig']} %</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{sp['max_bet']}</td>
                   {search && (
                     <td className="py-2 px-4 text-sm text-gray-600">
-                      {sp[4].replace('T', ' ')}
+                      {sp['time'].replace('T', ' ')}
                     </td>
                   )}
                 </tr>
                 {
                   memoizedClickedData &&
                   memoizedClickedData.period_id === item.period_id[0] &&
-                  memoizedClickedData.hdp === sp[0] && (
+                  memoizedClickedData.hdp === sp['handicap'] && (
                     <tr>
                       <td colSpan={8}>
                         <ChartComponent data={memoizedClickedData.data.data} />

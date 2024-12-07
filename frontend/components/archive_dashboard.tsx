@@ -104,8 +104,6 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
     setUpdates([]);
     handlePageChange(1);
     setLeague('');
-    
-    // router.push('/');
   };
 
   const handleDropdownLeagueSelect = async (value: DropdownOption) => {
@@ -188,6 +186,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
+        console.log('event_data:', data);
         setSelectedData({
           event_id: event_id,
           data: data,
@@ -378,7 +377,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
                   </div>
 
                   {memoizedSelectedData && memoizedSelectedData.event_id === update.event_id && (
-                    <div className="mt-6 p-6 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg shadow-xl w-full max-w-4xl mx-auto">
+                    <div className="mt-6 p-6 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg shadow-xl w-full max-w-6xl mx-auto">
                       <div className="flex items-center justify-between">
                         <h4 className="text-2xl font-semibold text-gray-800 mb-4">Detailed Information</h4>
                         <button
@@ -396,7 +395,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
                         ) ? (
                           memoizedSelectedData.data.data.map((item: any, index: any) => (
                             <div key={index} className="border-t border-gray-200">
-                              {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 pt-4 space-y-4">
+                              {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 pt-4 space-y-4 ">
                                 <h3 className="text-xl font-medium text-gray-800 mb-2">
                                   {
                                     PeriodTitles(index)
