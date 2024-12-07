@@ -204,7 +204,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&type=money_line`,
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&table=money_line`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -215,6 +215,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
         console.error('Error:', response.status, response.statusText);
       } else {
         const data = await response.json();
+        console.log('money_line_data:', data);
         setClickedMoneyLineData({
           period_id: period_id,
           data: data,
@@ -231,7 +232,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&hdp=${hdp}&type=spread`,
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&hdp=${hdp}&table=spread`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -259,7 +260,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&points=${points}&type=total`,
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&points=${points}&table=total`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },

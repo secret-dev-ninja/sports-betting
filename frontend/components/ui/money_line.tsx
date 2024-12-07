@@ -23,7 +23,10 @@ const MoneyLine = ({ data, period_id, update, search, handleGetChart, memoizedCl
             <tbody className="bg-white divide-y divide-gray-200">
               {data.map((ml, mIndex) => (
                 <React.Fragment key={mIndex}>
-                  <tr className="bg-white hover:bg-gray-100 transition cursor-pointer" onClick={(event) => handleGetChart(period_id, event)}>
+                  <tr 
+                    className="bg-white hover:bg-gray-100 transition cursor-pointer" 
+                    onClick={(event) => handleGetChart(period_id, event)}
+                  >
                     <td className="py-2 px-4 text-sm text-gray-600">{ml['home']}</td>
                     <td className="py-2 px-4 text-sm text-gray-600">{ml['home_vf']}</td>
                     <td className="py-2 px-4 text-sm text-gray-600">{ml['draw']}</td>
