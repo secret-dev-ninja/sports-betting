@@ -47,8 +47,7 @@ class DatabaseManager:
             cur.execute("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;")
             logger.info("TimescaleDB extension ensured.")
 
-            # # Create tables
-
+            # Create tables
             cur.execute('''
             CREATE TABLE IF NOT EXISTS api_request_logs (
                 id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -92,9 +91,9 @@ class DatabaseManager:
                 max_money_line DECIMAL,
                 max_total DECIMAL,
                 max_team_total DECIMAL,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 line_id BIGINT,
                 number INTEGER,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (event_id) REFERENCES events (event_id) ON DELETE CASCADE,
                 CONSTRAINT unique_event_period UNIQUE (event_id, period_number)
             );
@@ -327,8 +326,6 @@ class DatabaseManager:
                 parent_id BIGINT,
                 resulting_unit TEXT,
                 is_have_odds BOOLEAN,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                last_updated TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 event_category TEXT,
                 archived_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             );
@@ -345,17 +342,16 @@ class DatabaseManager:
                 max_money_line DECIMAL,
                 max_total DECIMAL,
                 max_team_total DECIMAL,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 line_id BIGINT,
                 number INTEGER,
                 archived_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (event_id) REFERENCES events (event_id) ON DELETE CASCADE
+                FOREIGN KEY (event_id) REFERENCES events (event_id) ON DELETE CASCADE,
+                CONSTRAINT unique_event_period UNIQUE (event_id, period_number)
             );
             ''')
 
             cur.execute('''
             CREATE TABLE IF NOT EXISTS money_lines (
-                time TIMESTAMPTZ NOT NULL,
                 period_id BIGINT,
                 home_odds DECIMAL,
                 draw_odds DECIMAL,
@@ -368,7 +364,6 @@ class DatabaseManager:
 
             cur.execute('''
             CREATE TABLE IF NOT EXISTS spreads (
-                time TIMESTAMPTZ NOT NULL,
                 period_id BIGINT,
                 handicap DECIMAL,
                 alt_line_id BIGINT,
@@ -382,7 +377,6 @@ class DatabaseManager:
 
             cur.execute('''
             CREATE TABLE IF NOT EXISTS totals (
-                time TIMESTAMPTZ NOT NULL,
                 period_id BIGINT,
                 points DECIMAL,
                 alt_line_id BIGINT,
@@ -396,7 +390,6 @@ class DatabaseManager:
 
             cur.execute('''
             CREATE TABLE IF NOT EXISTS team_totals (
-                time TIMESTAMPTZ NOT NULL,
                 period_id BIGINT,
                 team_type TEXT,
                 points DECIMAL,
@@ -410,7 +403,27 @@ class DatabaseManager:
 
             # Convert tables to hypertables
             for table in ['money_lines', 'spreads', 'totals', 'team_totals']:
-                cur.execute(f"SELECT create_hypertable('{table}', 'time', if_not_exists => TRUE);")
+                cur.execute(f"SELECT create_hypertable('{table}', 'archived_at', if_not_exists => TRUE);")
+
+            # Create indexes
+            indexes = [
+                "CREATE INDEX IF NOT EXISTS idx_events_sport_id ON events(sport_id);",
+                "CREATE INDEX IF NOT EXISTS idx_events_league_id ON events(league_id);",
+                "CREATE INDEX IF NOT EXISTS idx_periods_event_id ON periods(event_id);",
+                "CREATE INDEX IF NOT EXISTS idx_money_lines_period_id ON money_lines(period_id);",
+                "CREATE INDEX IF NOT EXISTS idx_spreads_period_id ON spreads(period_id);",
+                "CREATE INDEX IF NOT EXISTS idx_totals_period_id ON totals(period_id);",
+                "CREATE INDEX IF NOT EXISTS idx_team_totals_period_id ON team_totals(period_id);",
+                "CREATE INDEX IF NOT EXISTS idx_events_home_team ON events(home_team);",
+                "CREATE INDEX IF NOT EXISTS idx_events_away_team ON events(away_team);",
+                "CREATE INDEX IF NOT EXISTS idx_events_sport_league ON events(sport_id, league_id);",
+                "CREATE INDEX IF NOT EXISTS idx_events_sport_league_type_start ON events (sport_id, league_id, event_type, event_id, starts DESC);",
+                "CREATE INDEX IF NOT EXISTS idx_events_filter_sort ON events (sport_id, event_type, home_team, away_team, event_id, starts DESC);",
+            ]
+
+            for index_query in indexes:
+                cur.execute(index_query)
+                logger.info(f"Index {index_query} created successfully.")
 
             # Commit changes and close
             conn.commit()
@@ -423,7 +436,6 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error creating tables: {e}")
             raise
-
 
 if __name__ == "__main__":
     db = DatabaseManager()

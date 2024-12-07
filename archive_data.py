@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 import time
 from dotenv import load_dotenv
 import os
+from utils import get_uname
+from typing import Dict
 
 load_dotenv()
 
@@ -19,10 +21,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger('archive_manager')
 
+class CacheManager:
+    def __init__(self):
+        self.cache = {}
+    
+    def has_changed(self, table: str, key: tuple, new_value: Dict) -> bool:
+        """
+        Check if the value has changed from the cached version
+        """
+        cache_key = (table,) + key
+        if cache_key not in self.cache:
+            self.cache[cache_key] = new_value
+            return True
+        
+        if self.cache[cache_key] != new_value:
+            self.cache[cache_key] = new_value
+            return True
+            
+        return False
+
 class ArchiveManager:
     def archive_recent_data(self, minutes_old=10):
         """Move data older than specified minutes to archive database."""
         try:
+            cache_manager = CacheManager()
+
             # Connect to both databases
             source_conn = psycopg2.connect(**DB_CONFIG)
             archive_params = DB_CONFIG.copy()
@@ -55,37 +78,126 @@ class ArchiveManager:
                     # Begin transaction for this event
                     source_cur.execute("BEGIN")
                     archive_cur.execute("BEGIN")
+                    
+                    # events
+                    source_cur.execute("""
+                        SELECT event_id, sport_id, sport_uname, league_id, league_name, league_uname, starts, home_team, home_team_uname,
+                        away_team, away_team_uname, event_type, parent_id, resulting_unit, is_have_odds, event_category 
+                        FROM events WHERE event_id = %s
+                    """, (event_id,))
+                    events = source_cur.fetchall()
 
+                    if events:
+                        for event in events:
+                            archive_cur.execute('''
+                            INSERT INTO events (
+                                event_id, sport_id, sport_uname, league_id, league_name, league_uname, starts, home_team, home_team_uname,
+                                away_team, away_team_uname, event_type, parent_id, resulting_unit, is_have_odds, event_category
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (event_id) DO UPDATE SET
+                                archived_at = CURRENT_TIMESTAMP
+                            ''', (
+                                event[0], event[1], get_uname(event[2]), event[3],
+                                event[4], get_uname(event[5]), event[6], event[7],
+                                get_uname(event[8]), event[9], get_uname(event[10]), event[11],
+                                event[12], event[13], event[14], event[15]
+                            ))
+
+                            source_cur.execute("""
+                                SELECT event_id, period_number, period_status, cutoff, max_spread, max_money_line, max_total, max_team_total 
+                                FROM periods WHERE event_id = %s
+                            """, (event_id,))
+                            periods = source_cur.fetchall()
+
+                            if periods:
+                                for period in periods:
+                                    archive_cur.execute('''
+                                    INSERT INTO periods (
+                                        event_id, period_number, period_status, cutoff, max_spread, max_money_line, max_total, max_team_total
+                                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                    ON CONFLICT (event_id, period_number) DO UPDATE SET
+                                        archived_at = CURRENT_TIMESTAMP
+                                    ''', (
+                                        period[0], period[1], period[2], period[3], 
+                                        period[4], period[5], period[6], period[7]
+                                    ))
+
+                                    source_cur.execute("""
+                                        SELECT period_id, home_odds, draw_odds, away_odds, max_bet 
+                                        FROM money_lines WHERE period_id = %s
+                                    """, (period[0],))
+                                    money_lines = source_cur.fetchall()
+
+                                    if money_lines:
+                                        for money_line in money_lines:
+                                            data = {
+                                                'home': money_line[1],
+                                                'draw': money_line[2],
+                                                'away': money_line[3],
+                                                'max': money_line[4]
+                                            }
+
+                                            if cache_manager.has_changed('money_lines', (money_line[0],), data):
+                                                archive_cur.execute('''
+                                                INSERT INTO money_lines (
+                                                    period_id, home_odds, draw_odds, away_odds, max_bet
+                                                ) VALUES (%s, %s, %s, %s, %s)
+                                                ''', (
+                                                    money_line[0], money_line[1], money_line[2], 
+                                                    money_line[3], money_line[4]
+                                                ))
+
+                                    source_cur.execute("""
+                                        SELECT period_id, handicap, alt_line_id, home_odds, away_odds, max_bet 
+                                        FROM spreads WHERE period_id = %s
+                                    """, (period[0],))
+                                    spreads = source_cur.fetchall()
+
+                                    if spreads:
+                                        for spread in spreads:
+                                            data = {
+                                                'hdp': spread[1],
+                                                'home': spread[2],
+                                                'draw': spread[3],
+                                                'away': spread[4],
+                                                'max': spread[5]
+                                            }
+
+                                            if cache_manager.has_changed('spreads', (spread[0],), data):
+                                                archive_cur.execute('''
+                                                INSERT INTO spreads (
+                                                    period_id, handicap, alt_line_id, home_odds, away_odds, max_bet
+                                                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                                                ''', (
+                                                    spread[0], spread[1], spread[2], spread[3], spread[4], spread[5]
+                                                ))
+
+                                    source_cur.execute("""
+                                        SELECT period_id, time, points, alt_line_id, over_odds, under_odds, max_bet 
+                                        FROM totals WHERE period_id = %s
+                                    """, (period[0],))
+                                    totals = source_cur.fetchall()
+
+                                    if totals:
+                                        for total in totals:
+                                            data = {
+                                                'points': total[2],
+                                                'over': total[3],
+                                                'under': total[4],
+                                                'max': total[5]
+                                            }
+
+                                            if cache_manager.has_changed('totals', (total[0],), data):
+                                                archive_cur.execute('''
+                                                INSERT INTO totals (
+                                                    time, period_id, points, alt_line_id, over_odds, under_odds, max_bet
+                                                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                                                ''', (
+                                                    total[0], total[1], total[2], total[3], total[4], total[5], total[6]
+                                                ))
+                                            
                     # Copy data to archive
                     tables = ['events', 'periods', 'money_lines', 'spreads', 'totals', 'team_totals']
-                    
-                    for table in tables:
-                        if table == 'events':
-                            source_cur.execute(f"SELECT * FROM {table} WHERE event_id = %s", (event_id,))
-                        elif table == 'periods':
-                            source_cur.execute(f"SELECT * FROM {table} WHERE event_id = %s", (event_id,))
-                        else:
-                            source_cur.execute(f"""
-                                SELECT t.* FROM {table} t
-                                JOIN periods p ON p.period_id = t.period_id
-                                WHERE p.event_id = %s
-                            """, (event_id,))
-                        
-                        rows = source_cur.fetchall()
-                        
-                        if rows:
-                            columns = [desc[0] for desc in source_cur.description]
-                            # Add archived_at column
-                            columns.append('archived_at')
-                            values_str = ','.join(['%s'] * len(columns))
-                            insert_query = f"INSERT INTO {table} ({','.join(columns)}) VALUES ({values_str})"
-                            if table == 'events':
-                                insert_query = insert_query + " ON CONFLICT (event_id) DO UPDATE SET archived_at = CURRENT_TIMESTAMP"
-                            # Add current timestamp to each row
-                            current_time = datetime.now()
-                            modified_rows = [row + (current_time,) for row in rows]
-
-                            archive_cur.executemany(insert_query, modified_rows)
 
                     # Delete data from source
                     for table in reversed(tables):  # Delete in reverse order due to foreign keys
@@ -122,6 +234,7 @@ class ArchiveManager:
         finally:
             source_cur.close()
             archive_cur.close()
+
             source_conn.close()
             archive_conn.close()
 

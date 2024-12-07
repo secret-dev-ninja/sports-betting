@@ -11,6 +11,7 @@ import sys
 import time
 from config import DB_CONFIG
 import multiprocessing
+from utils import get_uname
 
 load_dotenv()
 
@@ -365,9 +366,6 @@ class OddsCollector:
             conn.rollback()
             logger.error(f"Error storing event {event['event_id']}: {str(e)}")
             raise
-
-def get_uname(text: str) -> str:
-    return text.lower().replace('(', '').replace(')', '').replace(' ', '-').replace('---', '-')
 
 def get_sports_ids():
     url = os.getenv('PINNACLE_API_SPORTS_URL')
