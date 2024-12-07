@@ -45,23 +45,30 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-def get_db_connection():
+def get_db_connection(type: str = 'live'):
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        if type == 'live':
+            conn = psycopg2.connect(**DB_CONFIG)
+            conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        else:
+            params = DB_CONFIG.copy()
+            params['dbname'] = f"{DB_CONFIG['dbname']}_archive"
+            conn = psycopg2.connect(**params)
+            conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+            
         return conn
     except Exception as e:
         logger.error(f"Database connection error: {e}")
         raise HTTPException(status_code=500, detail="Database connection failed")
 
 @app.get("/receive-event")
-async def receive_event(event_id: str):
+async def receive_event(event_id: str, type: str = 'live'):
     try:
         # Add the received event_id to the storage
-        conn = get_db_connection()
+        conn = get_db_connection(type=type)
         cursor = conn.cursor()
 
-         # Query to get period_ids by event_id
+        # Query to get period_ids by event_id
         cursor.execute("""
             SELECT period_id
             FROM periods
@@ -77,7 +84,7 @@ async def receive_event(event_id: str):
         result = []
         for period in periods:
             # Query to get the money_line data for a specific period_id
-            cursor.execute("""
+            base_query = """
                 SELECT
                     ml.home_odds,
                     ml.draw_odds,
@@ -89,11 +96,13 @@ async def receive_event(event_id: str):
                 JOIN periods p ON ml.period_id = p.period_id
                 WHERE
                     p.period_id = %s
-                    AND ml.time AT TIME ZONE 'UTC' <= p.cutoff
-                ORDER BY
-                    ml.time DESC
-                LIMIT 1
-            """, (period))
+            """
+            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+            complete_query = base_query + time_condition + """
+                ORDER BY ml.time DESC LIMIT 1
+            """
+
+            cursor.execute(complete_query, (period))
             money_lines = cursor.fetchall()
             money_line_results = [
                 {
@@ -113,8 +122,8 @@ async def receive_event(event_id: str):
             ]
 
             # Query to get the spread data for a specific period_id
-            cursor.execute("""
-               SELECT DISTINCT ON ( handicap ) s.handicap,
+            base_query = """
+                SELECT DISTINCT ON ( handicap ) s.handicap,
                     s.home_odds,
                     s.away_odds,
                     s.max_bet,
@@ -124,11 +133,13 @@ async def receive_event(event_id: str):
                 JOIN periods P ON s.period_id = P.period_id 
                 WHERE
                     s.period_id = %s 
-                    AND P.cutoff >= s.time AT TIME ZONE 'UTC'
-                ORDER BY
-                    s.handicap,
-                    s.time DESC;
-            """, (period,))
+            """
+            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+            complete_query = base_query + time_condition + """
+                ORDER BY s.handicap, s.time DESC;
+            """
+
+            cursor.execute(complete_query, (period,))
             spreads = cursor.fetchall()
             spread_results = [
                 {
@@ -144,7 +155,7 @@ async def receive_event(event_id: str):
             ]
 
             # Query to get the total data for a specific period_id
-            cursor.execute("""
+            base_query = """
                 SELECT 
                     DISTINCT ON (points)
                     t.points, 
@@ -157,10 +168,13 @@ async def receive_event(event_id: str):
                 JOIN periods p ON t.period_id = p.period_id
                 WHERE 
                     t.period_id = %s
-                    AND p.cutoff >= t.time AT TIME ZONE 'UTC'
-                ORDER BY 
-                    t.points, t.time DESC;
-            """, (period,))
+            """
+            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+            complete_query = base_query + time_condition + """
+                ORDER BY t.points, t.time DESC;
+            """
+
+            cursor.execute(complete_query, (period,))
             totals = cursor.fetchall()
             total_results = [
                 {
@@ -187,28 +201,33 @@ async def receive_event(event_id: str):
     except Exception as e:
         logger.error(f"Error in /receive-event: {e}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
+        
 @app.get("/receive-chart-event")
-async def receive_chart_event(period_id: str, hdp: float = None, points: float = None, type: str = None):
-    if type == 'spread':
+async def receive_chart_event(period_id: str, hdp: float = None, points: float = None, table: str = None, type: str = 'live'):
+    if table == 'spread':
         try: 
             # Add the received event_id to the storage
-            conn = get_db_connection()
+            conn = get_db_connection(type=type)
             cursor = conn.cursor()
 
             # Query to get period_ids by event_id
-            cursor.execute("""
+            base_query = """
                 SELECT
                     * 
                 FROM
                     ( SELECT s.home_odds, s.away_odds, s.time AT TIME ZONE 'UTC' AS time, s.max_bet
                     FROM spreads s
                     JOIN periods p ON s.period_id = p.period_id
-                    WHERE s.period_id = %s AND s.handicap = %s AND p.cutoff >= s.time AT TIME ZONE 'UTC'
+                    WHERE s.period_id = %s AND s.handicap = %s
+            """
+            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+
+            complete_query = base_query + time_condition + """
                     ORDER BY s.time DESC LIMIT 30 ) tmp 
                 ORDER BY
                     tmp.time ASC
-            """, (period_id, hdp))
+            """
+            cursor.execute(complete_query, (period_id, hdp))
 
             spreads = cursor.fetchall()
             result = [{
@@ -222,25 +241,31 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
         except Exception as e:
             logger.error(f"Error in /receive-chart-event: {e}")
             raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
-    elif type == 'money_line':
+    elif table == 'money_line':
         try: 
             # Add the received event_id to the storage
-            conn = get_db_connection()
+            conn = get_db_connection(type=type)
             cursor = conn.cursor()
 
             # Query to get period_ids by event_id
-            cursor.execute("""
+            base_query = """
                 SELECT
                     * 
                 FROM
                     ( SELECT ml.home_odds, ml.away_odds, ml.time AT TIME ZONE 'UTC' AS time, ml.max_bet
                     FROM money_lines ml
                     JOIN periods p ON ml.period_id = p.period_id
-                    WHERE ml.period_id = %s AND p.cutoff >= ml.time AT TIME ZONE 'UTC'
+                    WHERE ml.period_id = %s
+            """
+            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+
+            complete_query = base_query + time_condition + """
                     ORDER BY ml.time DESC LIMIT 30 ) tmp 
                 ORDER BY
                     tmp.time ASC
-            """, (period_id,))
+            """
+
+            cursor.execute(complete_query, (period_id,))
 
             spreads = cursor.fetchall()
             result = [{
@@ -254,23 +279,29 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
         except Exception as e:
             logger.error(f"Error in /receive-chart-event: {e}")
             raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
-    elif type == 'total':
+    elif table == 'total':
         try:
-            conn = get_db_connection()
+            conn = get_db_connection(type=type)
             cursor = conn.cursor()
 
-            cursor.execute("""
+            base_query = """
                 SELECT
                     * 
                 FROM
                     ( SELECT t.over_odds, t.under_odds, t.time AT TIME ZONE 'UTC' AS time, t.max_bet
                     FROM totals t
                     JOIN periods p ON t.period_id = p.period_id
-                    WHERE t.period_id = %s and t.points = %s AND p.cutoff >= t.time AT TIME ZONE 'UTC'
+                    WHERE t.period_id = %s and t.points = %s
+            """
+            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+
+            complete_query = base_query + time_condition + """
                     ORDER BY t.time DESC LIMIT 30 ) tmp 
                 ORDER BY
                     tmp.time ASC
-            """, (period_id, points))
+            """
+
+            cursor.execute(complete_query, (period_id, points))
 
             totals = cursor.fetchall()
             result = [{
@@ -286,7 +317,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
             raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
 
 @app.get("/receive-options-event")
-async def receive_options_event(sport_name: str = None, league_name: str = 'l'):
+async def receive_options_event(sport_name: str = None, league_name: str = 'l', type: str = 'live'):
     if sport_name is None and league_name == 'l':
         url = os.getenv('PINNACLE_API_SPORTS_URL')
         
@@ -311,8 +342,7 @@ async def receive_options_event(sport_name: str = None, league_name: str = 'l'):
                     logger.error(f"Response content: {e.response.text}")
                 return None
     elif sport_name is not None and league_name == 'l':
-        conn = psycopg2.connect(**DB_CONFIG)
-        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        conn = get_db_connection(type=type)
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -351,8 +381,7 @@ async def receive_options_event(sport_name: str = None, league_name: str = 'l'):
             'teams': teamsOpts
         }
     elif sport_name is not None and league_name is not None:
-        conn = psycopg2.connect(**DB_CONFIG)
-        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        conn = get_db_connection(type=type)
         cursor = conn.cursor()
 
         logger.info('starting receive-options...%s, %s', sport_name, league_name)
@@ -381,13 +410,12 @@ async def receive_options_event(sport_name: str = None, league_name: str = 'l'):
         return result
 
 @app.get("/receive-event-info")
-async def receive_event_info(sport_name: str, league_name: str = '', team_name: str = ''):    
-    conn = psycopg2.connect(**DB_CONFIG)
-    conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+async def receive_event_info(sport_name: str, league_name: str = '', team_name: str = '', type: str = 'live'):
+    conn = get_db_connection(type=type)
     cursor = conn.cursor()
 
     if league_name != '' and team_name == '':
-        cursor.execute("""
+        base_query = """
             SELECT * FROM (
                 SELECT DISTINCT ON (e.event_id) e.event_id, 
                     e.home_team,
@@ -401,16 +429,20 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
                 WHERE
                     e.sport_uname = %s 
                     AND e.league_uname = %s 
-                    AND e.event_type = 'prematch' 
-                    AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
-                ORDER BY
-                    e.event_id,
-                    l.created_at DESC 
+                    AND e.event_type = 'prematch'
+        """
+        time_condition = "AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
+
+        complete_query = base_query + time_condition + """
+            ORDER BY
+                e.event_id,
+                l.created_at DESC 
             ) AS tmp 
             ORDER BY
                 tmp.starts DESC;
-        """, (sport_name, league_name))
+        """
 
+        cursor.execute(complete_query, (sport_name, league_name))
         events = cursor.fetchall()
         
         result = [
@@ -426,7 +458,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         
         return result
     elif sport_name != '' and league_name == '' and team_name != '':
-        cursor.execute("""
+        base_query = """
             SELECT * FROM (
                 SELECT DISTINCT ON (e.event_id) e.event_id,
                     e.home_team,
@@ -441,14 +473,19 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
                     e.sport_uname = %s
                     AND (e.home_team_uname = %s OR e.away_team_uname = %s)
                     AND e.event_type = 'prematch'
-                    AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
+        """
+        time_condition = "AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
+
+        complete_query = base_query + time_condition + """
                 ORDER BY
                     e.event_id,
                     l.created_at DESC
             ) AS tmp
             ORDER BY 
                 tmp.starts DESC;
-        """, (sport_name, team_name, team_name))
+        """
+
+        cursor.execute(complete_query, (sport_name, team_name, team_name))
 
         events = cursor.fetchall()
         result = [
@@ -464,7 +501,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         
         return result  
     elif league_name != '' and team_name != '':
-        cursor.execute("""
+        base_query = """
             SELECT
             * 
             FROM
@@ -483,15 +520,19 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
                     AND e.league_uname = %s 
                     AND ( e.home_team_uname = %s OR e.away_team_uname = %s ) 
                     AND e.event_type = 'prematch' 
-                    AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
+        """
+        time_condition = "AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
+
+        complete_query = base_query + time_condition + """
                 ORDER BY
                     e.event_id,
                     l.created_at DESC
             ) AS tmp 
             ORDER BY
                 tmp.starts DESC;
-        """, (sport_name, league_name, team_name, team_name))
+        """
 
+        cursor.execute(complete_query, (sport_name, league_name, team_name, team_name))
         events = cursor.fetchall()
         
         result = [
@@ -507,7 +548,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         
         return result
     elif sport_name == '' and league_name == '' and team_name != '':
-        cursor.execute("""
+        base_query = """
             SELECT
             * 
             FROM
@@ -524,14 +565,19 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
                 WHERE
                     e.home_team_uname = %s OR e.away_team_uname = %s 
                     AND e.event_type = 'prematch' 
-                    AND l.created_at AT TIME ZONE 'UTC' <= e.starts 
+        """
+        time_condition = "AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
+
+        complete_query = base_query + time_condition + """
                 ORDER BY
                     e.event_id,
                     l.created_at DESC
             ) AS tmp 
             ORDER BY
                 tmp.starts DESC;
-        """, (team_name, team_name))
+        """
+
+        cursor.execute(complete_query, (team_name, team_name))
 
         events = cursor.fetchall()
         
@@ -547,6 +593,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         ]
         
         return result
+
 
 # @app.get("/archive/{sport_name}/{league_name}/{team_name}/{event_id}")
 # async def archive_data(sport_name: str, league_name: str = 'l', team_name: str = 't', event_id: str = 'e'):

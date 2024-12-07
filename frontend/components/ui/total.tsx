@@ -27,7 +27,7 @@ const Total = ({ item, search, period_id, handleGetChart, memoizedClickedData }:
           <tbody className="bg-white divide-y divide-gray-200">
             {item.map((tt, tIndex) => (
               <React.Fragment key={tIndex}>
-                <tr className="bg-white hover:bg-gray-100 transition cursor-pointer" onClick={(event) => handleGetChart(period_id, tt['points'], event)}>
+                <tr className={`bg-white hover:bg-gray-100 transition cursor-pointer ${tIndex == 0 || tIndex == item.length - 1 ? 'line-through' : ''}`} onClick={(event) => handleGetChart(period_id, tt['points'], event)}>
                   <td className="py-2 px-4 text-sm text-gray-600">{tt['points']}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{tt['over_odds']}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{tt['over_vf']}</td>
