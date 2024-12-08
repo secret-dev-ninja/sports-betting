@@ -114,7 +114,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                     'max_bet': money_line[3],
                     'vig': get_sum_vig('moneyline', [
                         money_line[0],
-                        money_line[1] if money_line[1] is not None else '1',
+                        money_line[1],
                         money_line[2]
                     ]),
                     'time': money_line[4]
