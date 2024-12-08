@@ -220,7 +220,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                     JOIN periods p ON s.period_id = p.period_id
                     WHERE s.period_id = %s AND s.handicap = %s
             """
-            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type == 'live' else ''
 
             complete_query = base_query + time_condition + """
                     ORDER BY s.time DESC LIMIT 30 ) tmp 
@@ -257,7 +257,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                     JOIN periods p ON ml.period_id = p.period_id
                     WHERE ml.period_id = %s
             """
-            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type == 'live' else ''
 
             complete_query = base_query + time_condition + """
                     ORDER BY ml.time DESC LIMIT 30 ) tmp 
@@ -293,7 +293,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                     JOIN periods p ON t.period_id = p.period_id
                     WHERE t.period_id = %s and t.points = %s
             """
-            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type == 'live' else ''
 
             complete_query = base_query + time_condition + """
                     ORDER BY t.time DESC LIMIT 30 ) tmp 
@@ -495,7 +495,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
                         e.sport_uname = %s
                         AND (e.home_team_uname = %s OR e.away_team_uname = %s)
                         AND e.event_type = 'prematch'
-                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
+                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts
                     ORDER BY
                         event_id,
                         archived_at DESC
@@ -562,7 +562,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
                         AND e.league_uname = %s 
                         AND ( e.home_team_uname = %s OR e.away_team_uname = %s ) 
                         AND e.event_type = 'prematch'
-                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else '' 
+                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts
                     ORDER BY
                         e.event_id,
                         l.created_at DESC
