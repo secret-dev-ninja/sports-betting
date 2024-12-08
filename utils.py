@@ -1,4 +1,4 @@
-from decimal import Decimal, getcontext
+from decimal import Decimal, getcontext, InvalidOperation
 import math
 
 def get_uname(text: str) -> str:
@@ -43,12 +43,11 @@ def get_no_vig_odds_multiway(odds: list):
   :return: Tuple of no-vig (fair) odds calculated using the iterative method.
   """
   getcontext().prec = 10
-  odds = [Decimal(o) for o in odds]
+  odds = [Decimal(o) for o in odds if o is not None]
 
   c, target_overround, accuracy, current_error = 1, 0, 3, 1000
   max_error = (10 ** (-accuracy)) / 2
 
-  fair_odds = list()
   while current_error > max_error:
     f = - 1 - target_overround
     for o in odds:
@@ -70,4 +69,10 @@ def get_no_vig_odds_multiway(odds: list):
   for o in odds:
     fair_odds.append(round(o ** c, 3))
 
-  return tuple(fair_odds)
+  if len(fair_odds) == 3:
+    return [
+      fair_odds[0],
+      fair_odds[2]
+    ]
+  else:
+    return fair_odds

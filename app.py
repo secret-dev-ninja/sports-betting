@@ -110,11 +110,11 @@ async def receive_event(event_id: str, type: str = 'live'):
                     'home_vf': get_no_vig_odds_multiway([money_line[0], money_line[1], money_line[2]])[0],
                     'draw': money_line[1],
                     'away': money_line[2],
-                    'away_vf': get_no_vig_odds_multiway([money_line[0], money_line[1], money_line[2]])[2],
+                    'away_vf': get_no_vig_odds_multiway([money_line[0], money_line[1], money_line[2]])[1],
                     'max_bet': money_line[3],
                     'vig': get_sum_vig('moneyline', [
                         money_line[0],
-                        money_line[1],
+                        money_line[1] if money_line[1] is not None else '1',
                         money_line[2]
                     ]),
                     'time': money_line[4]
