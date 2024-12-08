@@ -64,7 +64,7 @@ const SearchableInput: React.FC<SearchableInputProps> = ({
     const regex = new RegExp(`(${search})`, 'gi');
     const parts = text.split(regex);
     return parts.map((part, i) => 
-      regex.test(part) ? <mark key={i}>{part}</mark> : part
+      regex.test(part) ? <strong key={i}>{part}</strong> : part
     );
   };
 
