@@ -116,38 +116,48 @@ class ArchiveManager:
                                         period_id, event_id, period_number, period_status, cutoff, max_spread, max_money_line, max_total, max_team_total
                                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                                     ON CONFLICT (event_id, period_number) DO UPDATE SET
-                                    period_id = EXCLUDED.period_id,
-                                    period_status = EXCLUDED.period_status,
-                                    cutoff = EXCLUDED.cutoff,
-                                    max_spread = EXCLUDED.max_spread,
-                                    max_money_line = EXCLUDED.max_money_line,
-                                    max_total = EXCLUDED.max_total,
-                                    max_team_total = EXCLUDED.max_team_total,
-                                    archived_at = CURRENT_TIMESTAMP
+                                        period_status = EXCLUDED.period_status,
+                                        cutoff = EXCLUDED.cutoff,
+                                        max_spread = EXCLUDED.max_spread,
+                                        max_money_line = EXCLUDED.max_money_line,
+                                        max_total = EXCLUDED.max_total,
+                                        max_team_total = EXCLUDED.max_team_total,
+                                        archived_at = CURRENT_TIMESTAMP
                                     ''', (
-                                        period[0], period[1], period[2], period[3], 
+                                        period[0], period[1], period[2], period[3],
                                         period[4], period[5], period[6], period[7], period[8]
                                     ))
 
+                                    archive_cur.execute("""
+                                        SELECT period_id FROM periods WHERE event_id = %s and period_number = %s
+                                    """, (period[1], period[2]))
+
+                                    period_id = ''
+                                    result = archive_cur.fetchone()
+                                    if result:
+                                        period_id = result[0]
+                                    else:
+                                        period_id = period[0]
+
                                     source_cur.execute("""
-                                        SELECT period_id, home_odds, draw_odds, away_odds, max_bet 
+                                        SELECT home_odds, draw_odds, away_odds, max_bet 
                                         FROM money_lines WHERE period_id = %s
                                     """, (period[0],))
-                                    money_lines = source_cur.fetchall()
 
+                                    money_lines = source_cur.fetchall()
                                     if money_lines:
                                         for money_line in money_lines:
                                             archive_cur.execute("""
                                                 SELECT 1 FROM money_lines WHERE period_id = %s
-                                            """, (money_line[0],))
+                                            """, (period_id,))
                                             if not archive_cur.fetchone():
                                                 archive_cur.execute('''
                                                 INSERT INTO money_lines (
-                                                        period_id, home_odds, draw_odds, away_odds, max_bet
-                                                    ) VALUES (%s, %s, %s, %s, %s)
+                                                    period_id, home_odds, draw_odds, away_odds, max_bet
+                                                ) VALUES (%s, %s, %s, %s, %s)
                                                     ''', (
-                                                        money_line[0], money_line[1], money_line[2], 
-                                                        money_line[3], money_line[4]
+                                                        period_id, money_line[0], money_line[1], 
+                                                        money_line[2], money_line[3]
                                                     )
                                                 )
                                             else:
@@ -160,12 +170,12 @@ class ArchiveManager:
                                                     time = CURRENT_TIMESTAMP
                                                 WHERE period_id = %s
                                                 ''', (
-                                                    money_line[1], money_line[2], 
-                                                    money_line[3], money_line[4], money_line[0]
+                                                    money_line[0], money_line[1], 
+                                                    money_line[2], money_line[3], period_id
                                                 ))
 
                                     source_cur.execute("""
-                                        SELECT period_id, handicap, alt_line_id, home_odds, away_odds, max_bet 
+                                        SELECT handicap, alt_line_id, home_odds, away_odds, max_bet 
                                         FROM spreads WHERE period_id = %s
                                     """, (period[0],))
                                     spreads = source_cur.fetchall()
@@ -174,14 +184,14 @@ class ArchiveManager:
                                         for spread in spreads:
                                             archive_cur.execute("""
                                                 SELECT 1 FROM spreads WHERE period_id = %s and handicap = %s
-                                            """, (spread[0], spread[1]))
+                                            """, (period[0], spread[0]))
                                             if not archive_cur.fetchone():
                                                 archive_cur.execute('''
                                                 INSERT INTO spreads (
                                                     period_id, handicap, alt_line_id, home_odds, away_odds, max_bet
                                                 ) VALUES (%s, %s, %s, %s, %s, %s)
                                                 ''', (
-                                                    spread[0], spread[1], spread[2], spread[3], spread[4], spread[5]
+                                                    period_id, spread[0], spread[1], spread[2], spread[3], spread[4]
                                                 ))
                                             else:
                                                 archive_cur.execute('''
@@ -193,11 +203,11 @@ class ArchiveManager:
                                                     time = CURRENT_TIMESTAMP
                                                 WHERE period_id = %s and handicap = %s
                                                 ''', (
-                                                    spread[2], spread[3], spread[4], spread[5], spread[0], spread[1]
+                                                    spread[1], spread[2], spread[3], spread[4], period_id, spread[0]
                                                 ))
 
                                     source_cur.execute("""
-                                        SELECT period_id, points, alt_line_id, over_odds, under_odds, max_bet 
+                                        SELECT points, alt_line_id, over_odds, under_odds, max_bet 
                                         FROM totals WHERE period_id = %s
                                     """, (period[0],))
                                     totals = source_cur.fetchall()
@@ -206,7 +216,7 @@ class ArchiveManager:
                                         for total in totals:
                                             archive_cur.execute("""
                                                 SELECT 1 FROM totals WHERE period_id = %s and points = %s
-                                            """, (total[0], total[1]))
+                                            """, (period[0], total[0]))
 
                                             if not archive_cur.fetchone():
                                                 archive_cur.execute('''
@@ -214,7 +224,7 @@ class ArchiveManager:
                                                     period_id, points, alt_line_id, over_odds, under_odds, max_bet
                                                 ) VALUES (%s, %s, %s, %s, %s, %s)
                                                 ''', (
-                                                    total[0], total[1], total[2], total[3], total[4], total[5]
+                                                    period_id, total[0], total[1], total[2], total[3], total[4]
                                                 ))
                                             else:
                                                 archive_cur.execute('''
@@ -226,11 +236,11 @@ class ArchiveManager:
                                                     time = CURRENT_TIMESTAMP
                                                 WHERE period_id = %s and points = %s
                                                 ''', (
-                                                    total[2], total[3], total[4], total[5], total[0], total[1]
+                                                    total[1], total[2], total[3], total[4], period_id, total[0]
                                                 ))
 
                     # Copy data to archive
-                    tables = ['events', 'periods', 'money_lines', 'spreads', 'totals', 'team_totals']
+                    tables = ['events', 'periods', 'money_lines', 'spreads', 'totals']
 
                     # Delete data from source
                     for table in reversed(tables):  # Delete in reverse order due to foreign keys

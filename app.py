@@ -317,8 +317,8 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
             raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
 
 @app.get("/receive-options-event")
-async def receive_options_event(sport_name: str = None, league_name: str = '', type: str = 'live'):
-    if sport_name is None and league_name == 'l':
+async def receive_options_event(sport_name: str = None, league_name: str = None, type: str = 'live'):
+    if sport_name is None and league_name is None:
         url = os.getenv('PINNACLE_API_SPORTS_URL')
         
         headers = {
@@ -341,7 +341,7 @@ async def receive_options_event(sport_name: str = None, league_name: str = '', t
                 if hasattr(e, 'response') and e.response is not None:
                     logger.error(f"Response content: {e.response.text}")
                 return None
-    elif sport_name is not None and league_name == '':
+    elif sport_name is not None and league_name is None:
         conn = get_db_connection(type=type)
         cursor = conn.cursor()
 
