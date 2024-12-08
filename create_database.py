@@ -357,7 +357,7 @@ class DatabaseManager:
                 draw_odds DECIMAL,
                 away_odds DECIMAL,
                 max_bet DECIMAL,
-                archived_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (period_id) REFERENCES periods (period_id) ON DELETE CASCADE
             );
             ''')
@@ -370,7 +370,7 @@ class DatabaseManager:
                 home_odds DECIMAL,
                 away_odds DECIMAL,
                 max_bet DECIMAL,
-                archived_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (period_id) REFERENCES periods (period_id) ON DELETE CASCADE
             );
             ''')
@@ -383,7 +383,7 @@ class DatabaseManager:
                 over_odds DECIMAL,
                 under_odds DECIMAL,
                 max_bet DECIMAL,
-                archived_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (period_id) REFERENCES periods (period_id) ON DELETE CASCADE
             );
             ''')
@@ -396,14 +396,14 @@ class DatabaseManager:
                 over_odds DECIMAL,
                 under_odds DECIMAL,
                 max_bet DECIMAL,
-                archived_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (period_id) REFERENCES periods (period_id) ON DELETE CASCADE
             );
             ''')
 
             # Convert tables to hypertables
             for table in ['money_lines', 'spreads', 'totals', 'team_totals']:
-                cur.execute(f"SELECT create_hypertable('{table}', 'archived_at', if_not_exists => TRUE);")
+                cur.execute(f"SELECT create_hypertable('{table}', 'time', if_not_exists => TRUE);")
 
             # Create indexes
             indexes = [

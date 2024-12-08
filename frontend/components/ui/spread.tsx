@@ -42,7 +42,7 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
             {item.spread.map((sp, sIndex) => (
               <React.Fragment key={sIndex}>
                 <tr
-                  className="bg-white hover:bg-gray-100 transition cursor-pointer"
+                  className={`bg-white hover:bg-gray-100 transition cursor-pointer  ${sIndex == 0 || sIndex == item.spread.length - 1 ? 'line-through' : ''}`}
                   onClick={(event) => handleGetChart(item.period_id[0], sp['handicap'], event)}
                 >
                   <td className="py-2 px-4 text-sm text-gray-600">{sp['handicap']}</td>

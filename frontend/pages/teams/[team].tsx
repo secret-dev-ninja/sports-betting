@@ -68,7 +68,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // Fetch data server-side
     const response = await fetch(
-      `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=&league_name=&team_name=${team}`,
+      `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=&league_name=&team_name=${team}&type=archive`,
       {
         headers: { 'Content-Type': 'application/json' },
       }

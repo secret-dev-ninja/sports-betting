@@ -14,7 +14,7 @@ def get_sum_vig(type: str, odds: dict) -> str:
   else:
     raise ValueError(f"Invalid type: {type}")
     
-  return str(round(result, 2))
+  return str(round(result * 100, 2))
 
 def calculate_vig_free_odds(odds_1: float, odds_2: float):
 # Determine the longshot and favorite odds

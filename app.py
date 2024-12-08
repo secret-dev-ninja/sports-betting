@@ -317,7 +317,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
             raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
 
 @app.get("/receive-options-event")
-async def receive_options_event(sport_name: str = None, league_name: str = 'l', type: str = 'live'):
+async def receive_options_event(sport_name: str = None, league_name: str = '', type: str = 'live'):
     if sport_name is None and league_name == 'l':
         url = os.getenv('PINNACLE_API_SPORTS_URL')
         
@@ -341,7 +341,7 @@ async def receive_options_event(sport_name: str = None, league_name: str = 'l', 
                 if hasattr(e, 'response') and e.response is not None:
                     logger.error(f"Response content: {e.response.text}")
                 return None
-    elif sport_name is not None and league_name == 'l':
+    elif sport_name is not None and league_name == '':
         conn = get_db_connection(type=type)
         cursor = conn.cursor()
 
@@ -415,34 +415,55 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
     cursor = conn.cursor()
 
     if league_name != '' and team_name == '':
-        base_query = """
-            SELECT * FROM (
-                SELECT DISTINCT ON (e.event_id) e.event_id, 
-                    e.home_team,
-                    e.away_team,
-                    e.league_name,
-                    e.starts :: TIMESTAMP AS starts,
-                    l.created_at AT TIME ZONE 'UTC'
-                FROM
-                    events e
-                JOIN api_request_logs l ON l.event_id = e.event_id 
-                WHERE
-                    e.sport_uname = %s 
-                    AND e.league_uname = %s 
-                    AND e.event_type = 'prematch'
-        """
-        time_condition = "AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
+        query = ""
+        if type == 'live':
+            query = """
+                SELECT * FROM (
+                    SELECT DISTINCT ON (e.event_id) e.event_id, 
+                        e.home_team,
+                        e.away_team,
+                        e.league_name,
+                        e.starts :: TIMESTAMP AS starts,
+                        l.created_at AT TIME ZONE 'UTC'
+                    FROM
+                        events e
+                    JOIN api_request_logs l ON l.event_id = e.event_id 
+                    WHERE
+                        e.sport_uname = %s 
+                        AND e.league_uname = %s 
+                        AND e.event_type = 'prematch'
+                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts
+                    ORDER BY
+                        e.event_id,
+                        l.created_at DESC 
+                ) AS tmp 
+                ORDER BY
+                    tmp.starts DESC;
+            """
+        else:
+            query = """
+                SELECT * FROM (
+                    SELECT DISTINCT ON (e.event_id) e.event_id, 
+                        home_team,
+                        away_team,
+                        league_name,
+                        starts :: TIMESTAMP AS starts,
+                        archived_at AT TIME ZONE 'UTC'
+                    FROM
+                        events
+                    WHERE
+                        sport_uname = %s 
+                        AND league_uname = %s 
+                        AND event_type = 'prematch'
+                    ORDER BY
+                        event_id,
+                        archived_at DESC 
+                ) AS tmp 
+                ORDER BY
+                    tmp.starts DESC;
+            """
 
-        complete_query = base_query + time_condition + """
-            ORDER BY
-                e.event_id,
-                l.created_at DESC 
-            ) AS tmp 
-            ORDER BY
-                tmp.starts DESC;
-        """
-
-        cursor.execute(complete_query, (sport_name, league_name))
+        cursor.execute(query, (sport_name, league_name))
         events = cursor.fetchall()
         
         result = [
@@ -458,34 +479,54 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         
         return result
     elif sport_name != '' and league_name == '' and team_name != '':
-        base_query = """
-            SELECT * FROM (
-                SELECT DISTINCT ON (e.event_id) e.event_id,
-                    e.home_team,
-                    e.away_team,
-                    e.league_name,
-                    e.starts::TIMESTAMP AS starts,
-                    l.created_at AT TIME ZONE 'UTC'
-                FROM
-                    events e
-                JOIN api_request_logs l ON l.event_id = e.event_id
-                WHERE
-                    e.sport_uname = %s
-                    AND (e.home_team_uname = %s OR e.away_team_uname = %s)
-                    AND e.event_type = 'prematch'
-        """
-        time_condition = "AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
+        if type == 'live':
+            query = """
+                SELECT * FROM (
+                    SELECT DISTINCT ON (e.event_id) e.event_id,
+                        e.home_team,
+                        e.away_team,
+                        e.league_name,
+                        e.starts::TIMESTAMP AS starts,
+                        l.created_at AT TIME ZONE 'UTC'
+                    FROM
+                        events e
+                    JOIN api_request_logs l ON l.event_id = e.event_id
+                    WHERE
+                        e.sport_uname = %s
+                        AND (e.home_team_uname = %s OR e.away_team_uname = %s)
+                        AND e.event_type = 'prematch'
+                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
+                    ORDER BY
+                        event_id,
+                        archived_at DESC
+                ) AS tmp
+                ORDER BY 
+                    tmp.starts DESC;
+            """
+        else:
+            query = """
+                SELECT * FROM (
+                    SELECT DISTINCT ON (e.event_id) e.event_id,
+                        e.home_team,
+                        e.away_team,
+                        e.league_name,
+                        e.starts::TIMESTAMP AS starts,
+                        e.archived_at AT TIME ZONE 'UTC'
+                    FROM
+                        events e
+                    WHERE
+                        e.sport_uname = %s
+                        AND (e.home_team_uname = %s OR e.away_team_uname = %s)
+                        AND e.event_type = 'prematch'
+                    ORDER BY
+                        e.event_id,
+                        e.archived_at DESC
+                ) AS tmp
+                ORDER BY 
+                    tmp.starts DESC;
+            """
 
-        complete_query = base_query + time_condition + """
-                ORDER BY
-                    e.event_id,
-                    l.created_at DESC
-            ) AS tmp
-            ORDER BY 
-                tmp.starts DESC;
-        """
-
-        cursor.execute(complete_query, (sport_name, team_name, team_name))
+        cursor.execute(query, (sport_name, team_name, team_name))
 
         events = cursor.fetchall()
         result = [
@@ -501,38 +542,62 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         
         return result  
     elif league_name != '' and team_name != '':
-        base_query = """
-            SELECT
-            * 
-            FROM
-            (
-                SELECT DISTINCT ON (e.event_id) e.event_id,
-                    e.home_team,
-                    e.away_team,
-                    e.league_name,
-                    e.starts :: TIMESTAMP AS starts,
-                    l.created_at AT TIME ZONE 'UTC'
+        if type == 'live':
+            query = """
+                SELECT
+                * 
                 FROM
-                    events e
-                    JOIN api_request_logs l ON l.event_id = e.event_id 
-                WHERE
-                    e.sport_uname = %s 
-                    AND e.league_uname = %s 
-                    AND ( e.home_team_uname = %s OR e.away_team_uname = %s ) 
-                    AND e.event_type = 'prematch' 
-        """
-        time_condition = "AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
-
-        complete_query = base_query + time_condition + """
+                (
+                    SELECT DISTINCT ON (e.event_id) e.event_id,
+                        e.home_team,
+                        e.away_team,
+                        e.league_name,
+                        e.starts :: TIMESTAMP AS starts,
+                        l.created_at AT TIME ZONE 'UTC'
+                    FROM
+                        events e
+                        JOIN api_request_logs l ON l.event_id = e.event_id 
+                    WHERE
+                        e.sport_uname = %s 
+                        AND e.league_uname = %s 
+                        AND ( e.home_team_uname = %s OR e.away_team_uname = %s ) 
+                        AND e.event_type = 'prematch'
+                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else '' 
+                    ORDER BY
+                        e.event_id,
+                        l.created_at DESC
+                ) AS tmp 
                 ORDER BY
-                    e.event_id,
-                    l.created_at DESC
-            ) AS tmp 
-            ORDER BY
-                tmp.starts DESC;
-        """
+                    tmp.starts DESC;
+            """
+        else:
+            query = """
+                SELECT
+                * 
+                FROM
+                (
+                    SELECT DISTINCT ON (e.event_id) e.event_id,
+                        e.home_team,
+                        e.away_team,
+                        e.league_name,
+                        e.starts :: TIMESTAMP AS starts,
+                        e.archived_at AT TIME ZONE 'UTC'
+                    FROM
+                        events e
+                    WHERE
+                        e.sport_uname = %s 
+                        AND e.league_uname = %s 
+                        AND ( e.home_team_uname = %s OR e.away_team_uname = %s ) 
+                        AND e.event_type = 'prematch'
+                    ORDER BY
+                        e.event_id,
+                        e.archived_at DESC
+                ) AS tmp 
+                ORDER BY
+                    tmp.starts DESC;
+            """
 
-        cursor.execute(complete_query, (sport_name, league_name, team_name, team_name))
+        cursor.execute(query, (sport_name, league_name, team_name, team_name))
         events = cursor.fetchall()
         
         result = [
@@ -548,36 +613,58 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         
         return result
     elif sport_name == '' and league_name == '' and team_name != '':
-        base_query = """
-            SELECT
-            * 
-            FROM
-            (
-                SELECT DISTINCT ON (e.event_id) e.event_id,
-                    e.home_team,
-                    e.away_team,
-                    e.league_name,
-                    e.starts :: TIMESTAMP AS starts,
-                    l.created_at AT TIME ZONE 'UTC'
+        if type == 'live':
+            query = """
+                SELECT
+                * 
                 FROM
-                    events e
-                    JOIN api_request_logs l ON l.event_id = e.event_id 
-                WHERE
-                    e.home_team_uname = %s OR e.away_team_uname = %s 
-                    AND e.event_type = 'prematch' 
-        """
-        time_condition = "AND l.created_at AT TIME ZONE 'UTC' <= e.starts" if type != 'live' else ''
-
-        complete_query = base_query + time_condition + """
+                (
+                    SELECT DISTINCT ON (e.event_id) e.event_id,
+                        e.home_team,
+                        e.away_team,
+                        e.league_name,
+                        e.starts :: TIMESTAMP AS starts,
+                        l.created_at AT TIME ZONE 'UTC'
+                    FROM
+                        events e
+                        JOIN api_request_logs l ON l.event_id = e.event_id 
+                    WHERE
+                        e.home_team_uname = %s OR e.away_team_uname = %s 
+                        AND e.event_type = 'prematch'
+                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts
+                    ORDER BY
+                        e.event_id,
+                        l.created_at DESC
+                ) AS tmp 
                 ORDER BY
-                    e.event_id,
-                    l.created_at DESC
-            ) AS tmp 
-            ORDER BY
-                tmp.starts DESC;
-        """
+                    tmp.starts DESC; 
+            """
+        else:
+            query = """
+                SELECT
+                    * 
+                FROM
+                (
+                    SELECT DISTINCT ON (e.event_id) e.event_id,
+                        e.home_team,
+                        e.away_team,
+                        e.league_name,
+                        e.starts :: TIMESTAMP AS starts,
+                        e.archived_at AT TIME ZONE 'UTC'
+                    FROM
+                        events e
+                    WHERE
+                        e.home_team_uname = %s OR e.away_team_uname = %s 
+                        AND e.event_type = 'prematch'
+                    ORDER BY
+                        e.event_id,
+                        e.archived_at DESC
+                ) AS tmp 
+                ORDER BY
+                    tmp.starts DESC; 
+            """
 
-        cursor.execute(complete_query, (team_name, team_name))
+        cursor.execute(query, (team_name, team_name))
 
         events = cursor.fetchall()
         
