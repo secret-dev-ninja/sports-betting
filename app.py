@@ -97,7 +97,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                 WHERE
                     p.period_id = %s
             """
-            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type == 'live' else ''
             complete_query = base_query + time_condition + """
                 ORDER BY ml.time DESC LIMIT 1
             """
@@ -134,7 +134,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                 WHERE
                     s.period_id = %s 
             """
-            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type == 'live' else ''
             complete_query = base_query + time_condition + """
                 ORDER BY s.handicap, s.time DESC;
             """
@@ -169,7 +169,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                 WHERE 
                     t.period_id = %s
             """
-            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type != 'live' else ''
+            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type == 'live' else ''
             complete_query = base_query + time_condition + """
                 ORDER BY t.points, t.time DESC;
             """
