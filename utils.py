@@ -6,7 +6,10 @@ def get_uname(text: str) -> str:
 
 def get_sum_vig(type: str, odds: dict) -> str:
   if type == "moneyline":
-    result = 1/float(odds[0]) + 1/float(odds[1]) + 1/float(odds[2]) - 1
+    if odds[1] is None:
+      result = 1/float(odds[0]) + 1/float(odds[2]) - 1
+    else:
+      result = 1/float(odds[0]) + 1/float(odds[1]) + 1/float(odds[2]) - 1
   elif type == "spread":
     result = 1/float(odds[0]) + 1/float(odds[1]) - 1
   elif type == "total":
@@ -42,37 +45,34 @@ def get_no_vig_odds_multiway(odds: list):
   :param odds: List of original odds for a multi-way market.
   :return: Tuple of no-vig (fair) odds calculated using the iterative method.
   """
-  getcontext().prec = 10
-  odds = [Decimal(o) for o in odds if o is not None]
-
-  c, target_overround, accuracy, current_error = 1, 0, 3, 1000
-  max_error = (10 ** (-accuracy)) / 2
-
-  while current_error > max_error:
-    f = - 1 - target_overround
-    for o in odds:
-      f += (Decimal(1) / (o)) ** c
-
-    f_dash = 0
-    for o in odds:
-      f_dash += ((Decimal(1) / o) ** c) * (-Decimal(math.log(o)))
-
-    h = -f / f_dash
-    c = c + h
-
-    t = 0
-    for o in odds:
-      t += (Decimal(1) / o) ** c
-    current_error = abs(t - 1 - target_overround)
-
-  fair_odds = list()
-  for o in odds:
-    fair_odds.append(round(o ** c, 3))
-
-  if len(fair_odds) == 3:
-    return [
-      fair_odds[0],
-      fair_odds[2]
-    ]
+  if odds[1] is None:
+    return calculate_vig_free_odds(odds[0], odds[2])
   else:
+    getcontext().prec = 10
+    odds = [Decimal(o) for o in odds]
+
+    c, target_overround, accuracy, current_error = 1, 0, 3, 1000
+    max_error = (10 ** (-accuracy)) / 2
+
+    while current_error > max_error:
+      f = - 1 - target_overround
+      for o in odds:
+        f += (Decimal(1) / (o)) ** c
+
+      f_dash = 0
+      for o in odds:
+        f_dash += ((Decimal(1) / o) ** c) * (-Decimal(math.log(o)))
+
+      h = -f / f_dash
+      c = c + h
+
+      t = 0
+      for o in odds:
+        t += (Decimal(1) / o) ** c
+      current_error = abs(t - 1 - target_overround)
+
+    fair_odds = list()
+    for o in odds:
+      fair_odds.append(round(o ** c, 3))
+
     return fair_odds
