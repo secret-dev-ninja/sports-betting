@@ -396,7 +396,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
                             item.money_line.length || item.spread.length || item.total.length
                         ) ? (
                           memoizedSelectedData.data.data.map((item: any, index: any) => (
-                            <div key={index} className="border-t border-gray-200">
+                            <div key={index}>
                               {(item.money_line.length !== 0 || item.spread.length !== 0 || item.total.length !== 0) && <ul className="list-disc pl-6 pt-4 space-y-4 ">
                                 <h3 className="text-xl font-medium text-gray-800 mb-2">
                                   {

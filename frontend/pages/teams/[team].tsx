@@ -32,7 +32,7 @@ const Teams = ({ initialData, error }: TeamPageProps) => {
   }
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
+    <div className="p-4 max-w-6xl mx-auto">
       <nav className="bg-black shadow-md rounded-s">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-start justify-between">

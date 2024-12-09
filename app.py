@@ -83,7 +83,7 @@ async def receive_event(event_id: str, type: str = 'live'):
         
         result = []
         for period in periods:
-            # Query to get the money_line data for a specific period_id
+            # Money Lines Query to get the money_line data for a specific period_id
             base_query = """
                 SELECT
                     ml.home_odds,
@@ -109,8 +109,9 @@ async def receive_event(event_id: str, type: str = 'live'):
                     'home': money_line[0],
                     'home_vf': get_no_vig_odds_multiway([money_line[0], money_line[1], money_line[2]])[0],
                     'draw': money_line[1],
+                    'draw_vf': get_no_vig_odds_multiway([money_line[0], money_line[1], money_line[2]])[1] if money_line[1] is not None else '',
                     'away': money_line[2],
-                    'away_vf': get_no_vig_odds_multiway([money_line[0], money_line[1], money_line[2]])[1],
+                    'away_vf': get_no_vig_odds_multiway([money_line[0], money_line[1], money_line[2]])[1 if money_line[1] is None else 2],
                     'max_bet': money_line[3],
                     'vig': get_sum_vig('moneyline', [
                         money_line[0],
@@ -121,7 +122,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                 } for money_line in money_lines
             ]
 
-            # Query to get the spread data for a specific period_id
+            # Spreads Query to get the spread data for a specific period_id
             base_query = """
                 SELECT DISTINCT ON ( handicap ) s.handicap,
                     s.home_odds,
@@ -141,20 +142,35 @@ async def receive_event(event_id: str, type: str = 'live'):
 
             cursor.execute(complete_query, (period,))
             spreads = cursor.fetchall()
-            spread_results = [
-                {
-                    "handicap": spread[0],
-                    "home_odds": spread[1],
-                    "home_vf": str(calculate_vig_free_odds(spread[1], spread[2])[0]),
-                    "away_odds": spread[2],
-                    "away_vf": str(calculate_vig_free_odds(spread[1], spread[2])[1]),
-                    "max_bet": spread[3],
-                    "vig": get_sum_vig('spread', [spread[1], spread[2]]),
-                    "time": spread[4]
-                } for spread in spreads
-            ]
 
-            # Query to get the total data for a specific period_id
+            if spreads:
+                # Find the most recent time
+                most_recent_time = max(spreads, key=lambda x: x[4])[4]
+
+                # Filter totals to only include those with the most recent time
+                recent_spreads = [spread for spread in spreads if spread[4] == most_recent_time]
+
+                # Determine the min and max points from the recent totals
+                min_handicap = min(recent_spreads, key=lambda x: x[0])[0]
+                max_handicap = max(recent_spreads, key=lambda x: x[0])[0]
+
+                spread_results = [
+                    {
+                        "handicap": spread[0],
+                        "home_odds": spread[1],
+                        "home_vf": str(calculate_vig_free_odds(spread[1], spread[2])[0]),
+                        "away_odds": spread[2],
+                        "away_vf": str(calculate_vig_free_odds(spread[1], spread[2])[1]),
+                        "max_bet": spread[3],
+                        "vig": get_sum_vig('spread', [spread[1], spread[2]]),
+                        "time": spread[4],
+                        "otb": spread[0] < min_handicap or spread[0] > max_handicap
+                    } for spread in spreads
+                ]
+            else:
+                spread_results = []
+
+            # Totals Query to get the total data for a specific period_id
             base_query = """
                 SELECT 
                     DISTINCT ON (points)
@@ -176,18 +192,33 @@ async def receive_event(event_id: str, type: str = 'live'):
 
             cursor.execute(complete_query, (period,))
             totals = cursor.fetchall()
-            total_results = [
-                {
-                    "points": total[0],
-                    "over_odds": total[1],
-                    "over_vf": str(calculate_vig_free_odds(total[1], total[2])[0]),
-                    "under_odds": total[2],
-                    "under_vf": str(calculate_vig_free_odds(total[1], total[2])[1]),
-                    "max_bet": total[3],
-                    "vig": get_sum_vig('total', [total[1], total[2]]),
-                    "time": total[4]
-                } for total in totals
-            ]
+
+            if totals:
+                # Find the most recent time
+                most_recent_time = max(totals, key=lambda x: x[4])[4]
+
+                # Filter totals to only include those with the most recent time
+                recent_totals = [total for total in totals if total[4] == most_recent_time]
+
+                # Determine the min and max points from the recent totals
+                min_points = min(recent_totals, key=lambda x: x[0])[0]
+                max_points = max(recent_totals, key=lambda x: x[0])[0]
+
+                total_results = [
+                    {
+                        "points": total[0],
+                        "over_odds": total[1],
+                        "over_vf": str(calculate_vig_free_odds(total[1], total[2])[0]),
+                        "under_odds": total[2],
+                        "under_vf": str(calculate_vig_free_odds(total[1], total[2])[1]),
+                        "max_bet": total[3],
+                        "vig": get_sum_vig('total', [total[1], total[2]]),
+                        "time": total[4],
+                        "otb": total[0] < min_points or total[0] > max_points
+                    } for total in totals
+                ]
+            else:
+                total_results = []
 
             # Append the result as a dictionary
             result.append({

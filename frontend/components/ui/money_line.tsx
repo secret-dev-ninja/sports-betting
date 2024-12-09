@@ -12,7 +12,8 @@ const MoneyLine = ({ data, period_id, update, search, handleGetChart, memoizedCl
               <tr>
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{update.home_team} odds</th>
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{update.home_team} VF</th>
-                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Draw</th>
+                {data[0]['draw'] ? <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Draw</th> : ''}
+                {data[0]['draw'] ? <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Draw VF</th> : ''}
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{update.away_team} odds</th>
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">{update.away_team} VF</th>
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Vig</th>
@@ -29,10 +30,11 @@ const MoneyLine = ({ data, period_id, update, search, handleGetChart, memoizedCl
                   >
                     <td className="py-2 px-4 text-sm text-gray-600">{ml['home']}</td>
                     <td className="py-2 px-4 text-sm text-gray-600">{ml['home_vf']}</td>
-                    <td className="py-2 px-4 text-sm text-gray-600">{ml['draw']}</td>
+                    {ml['draw'] ? <td className="py-2 px-4 text-sm text-gray-600">{ml['draw']}</td> : ''}
+                    {ml['draw'] ? <td className="py-2 px-4 text-sm text-gray-600">{ml['draw_vf']}</td> : ''}
                     <td className="py-2 px-4 text-sm text-gray-600">{ml['away']}</td>
                     <td className="py-2 px-4 text-sm text-gray-600">{ml['away_vf']}</td>
-                    <td className="py-2 px-4 text-sm text-gray-600">{ml['vig']} %</td>
+                    <td className="py-2 px-4 text-sm text-gray-600">{ml['vig']}%</td>
                     <td className="py-2 px-4 text-sm text-gray-600">{ml['max_bet']}</td>
                     { search ? <td className="py-2 px-4 text-sm text-gray-600">{ml['time'].replace('T', ' ')}</td>: '' }
                   </tr>
@@ -40,7 +42,7 @@ const MoneyLine = ({ data, period_id, update, search, handleGetChart, memoizedCl
                     memoizedClickedData &&
                     memoizedClickedData.period_id === period_id && (
                       <tr>
-                        <td colSpan={8}>
+                        <td colSpan={12}>
                           <ChartComponent data={memoizedClickedData.data.data} />
                         </td>
                       </tr>

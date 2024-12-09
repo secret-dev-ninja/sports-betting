@@ -2,7 +2,7 @@ import * as React from 'react';
 import ChartComponent from './chart';
 
 interface SpreadItem {
-  spread: { handicap: number, home_odds: string, home_vf: string, away_odds: string, away_vf: string, vig: string, max_bet: string, time: string }[];
+  spread: { handicap: number, home_odds: string, home_vf: string, away_odds: string, away_vf: string, vig: string, max_bet: string, time: string, otb: boolean }[];
   period_id: string[];
 }
 
@@ -42,7 +42,7 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
             {item.spread.map((sp, sIndex) => (
               <React.Fragment key={sIndex}>
                 <tr
-                  className={`bg-white hover:bg-gray-100 transition cursor-pointer  ${sIndex == 0 || sIndex == item.spread.length - 1 ? 'line-through' : ''}`}
+                  className={`bg-white hover:bg-gray-100 transition cursor-pointer ${sp['otb'] ? 'line-through text-red-500' : ''}`}
                   onClick={(event) => handleGetChart(item.period_id[0], sp['handicap'], event)}
                 >
                   <td className="py-2 px-4 text-sm text-gray-600">{sp['handicap']}</td>
@@ -51,7 +51,7 @@ const Spread: React.FC<SpreadProps> = ({ item, update, handleGetChart, memoizedC
                   <td className="py-2 px-4 text-sm text-gray-600">{-1 * sp['handicap']}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{sp['away_odds']}</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{sp['away_vf']}</td>
-                  <td className="py-2 px-4 text-sm text-gray-600">{sp['vig']} %</td>
+                  <td className="py-2 px-4 text-sm text-gray-600">{sp['vig']}%</td>
                   <td className="py-2 px-4 text-sm text-gray-600">{sp['max_bet']}</td>
                   {search && (
                     <td className="py-2 px-4 text-sm text-gray-600">
