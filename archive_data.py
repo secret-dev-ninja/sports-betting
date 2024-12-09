@@ -35,7 +35,7 @@ class ArchiveManager:
             source_cur.execute("""
                 SELECT event_id FROM events 
                 WHERE starts < %s AT TIME ZONE 'UTC'
-                AND deleted = FALSE
+                AND archived_at = FALSE
                 AND event_id NOT IN (
                     SELECT event_id FROM events 
                     WHERE starts >= %s AT TIME ZONE 'UTC'
@@ -60,12 +60,12 @@ class ArchiveManager:
                     # Delete data from source
                     for table in reversed(tables):  # Delete in reverse order due to foreign keys
                         if table == 'events':
-                            source_cur.execute(f"UPDATE {table} SET deleted = TRUE WHERE event_id = %s", (event_id,))
+                            source_cur.execute(f"UPDATE {table} SET archived_at = TRUE WHERE event_id = %s", (event_id,))
                         elif table == 'periods':
-                            source_cur.execute(f"UPDATE {table} SET deleted = TRUE WHERE event_id = %s", (event_id,))
+                            source_cur.execute(f"UPDATE {table} SET archived_at = TRUE WHERE event_id = %s", (event_id,))
                         else:
                             source_cur.execute(f"""
-                                UPDATE {table} SET deleted = TRUE 
+                                UPDATE {table} SET archived_at = TRUE 
                                 WHERE period_id IN (
                                     SELECT period_id FROM periods WHERE event_id = %s
                                 )
