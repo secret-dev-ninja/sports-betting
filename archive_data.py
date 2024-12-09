@@ -142,7 +142,7 @@ class ArchiveManager:
                                     source_cur.execute("""
                                         SELECT home_odds, draw_odds, away_odds, max_bet 
                                         FROM money_lines WHERE period_id = %s
-                                    """, (period[0],))
+                                    """, (period_id,))
 
                                     money_lines = source_cur.fetchall()
                                     if money_lines:

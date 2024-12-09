@@ -380,6 +380,7 @@ async def receive_options_event(sport_name: str = None, league_name: str = None,
             SELECT DISTINCT league_uname, league_name
             FROM events
             WHERE sport_uname = %s 
+            AND event_type = 'prematch'
             ORDER BY league_name ASC;
         """, (sport_name,))
 
@@ -395,10 +396,12 @@ async def receive_options_event(sport_name: str = None, league_name: str = None,
             SELECT home_team_uname AS team_name, home_team AS team
             FROM events
             WHERE sport_uname = %s
+            AND event_type = 'prematch'
             UNION ALL
             SELECT away_team_uname AS team_name, away_team AS team
             FROM events
             WHERE sport_uname = %s
+            AND event_type = 'prematch'
         ) AS combined_teams ORDER BY team ASC;
         """, (sport_name, sport_name))
     
@@ -425,11 +428,13 @@ async def receive_options_event(sport_name: str = None, league_name: str = None,
             FROM events
             WHERE sport_uname = %s
             AND league_uname = %s
+            AND event_type = 'prematch'
             UNION ALL
             SELECT away_team_uname AS team_name, away_team AS team
             FROM events
             WHERE sport_uname = %s
             AND league_uname = %s
+            AND event_type = 'prematch'
         ) AS combined_teams ORDER BY team ASC;
         """, (sport_name, league_name, sport_name, league_name))
 
@@ -446,7 +451,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
     conn = get_db_connection(type=type)
     cursor = conn.cursor()
 
-    if league_name != '' and team_name == '':
+    if sport_name != '' and league_name != '' and team_name == '':
         query = ""
         if type == 'live':
             query = """
@@ -573,7 +578,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         ]
         
         return result  
-    elif league_name != '' and team_name != '':
+    elif sport_name != '' and league_name != '' and team_name != '':
         if type == 'live':
             query = """
                 SELECT
