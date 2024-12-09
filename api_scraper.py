@@ -183,43 +183,43 @@ class OddsCollector:
                         data_changed = True
                         changed_items['money_line'] = True
 
-                # Spreads tracking
-                if period.get('spreads'):
-                    for handicap_key, spread in period['spreads'].items():
-                        handicap = float(spread.get('hdp', handicap_key))  # Support both hdp and direct handicap
-                        spread_data = {
-                            'home_odds': spread.get('home'),
-                            'away_odds': spread.get('away'),
-                            'max_bet': spread.get('max')
-                        }
-                        if self.db_manager.has_changed('spreads', (event['event_id'], period_key, handicap), spread_data):
-                            data_changed = True
-                            changed_items['spreads'].add(handicap)
+                # # Spreads tracking
+                # if period.get('spreads'):
+                #     for handicap_key, spread in period['spreads'].items():
+                #         handicap = float(spread.get('hdp', handicap_key))  # Support both hdp and direct handicap
+                #         spread_data = {
+                #             'home_odds': spread.get('home'),
+                #             'away_odds': spread.get('away'),
+                #             'max_bet': spread.get('max')
+                #         }
+                #         if self.db_manager.has_changed('spreads', (event['event_id'], period_key, handicap), spread_data):
+                #             data_changed = True
+                #             changed_items['spreads'].add(handicap)
 
-                # Totals tracking
-                if period.get('totals'):
-                    for points, total in period['totals'].items():
-                        total_data = {
-                            'over_odds': total.get('over'),
-                            'under_odds': total.get('under'),
-                            'max_bet': total.get('max')
-                        }
-                        if self.db_manager.has_changed('totals', (event['event_id'], period_key, float(points)), total_data):
-                            data_changed = True
-                            changed_items['totals'].add(float(points))
+                # # Totals tracking
+                # if period.get('totals'):
+                #     for points, total in period['totals'].items():
+                #         total_data = {
+                #             'over_odds': total.get('over'),
+                #             'under_odds': total.get('under'),
+                #             'max_bet': total.get('max')
+                #         }
+                #         if self.db_manager.has_changed('totals', (event['event_id'], period_key, float(points)), total_data):
+                #             data_changed = True
+                #             changed_items['totals'].add(float(points))
 
-                # Team totals tracking
-                if period.get('team_total'):
-                    for team_type, team_data in period['team_total'].items():
-                        if team_data:
-                            team_total_data = {
-                                'points': team_data.get('points'),
-                                'over_odds': team_data.get('over'),
-                                'under_odds': team_data.get('under')
-                            }
-                            if self.db_manager.has_changed('team_totals', (event['event_id'], period_key, team_type), team_total_data):
-                                data_changed = True
-                                changed_items['team_totals'].add(team_type)
+                # # Team totals tracking
+                # if period.get('team_total'):
+                #     for team_type, team_data in period['team_total'].items():
+                #         if team_data:
+                #             team_total_data = {
+                #                 'points': team_data.get('points'),
+                #                 'over_odds': team_data.get('over'),
+                #                 'under_odds': team_data.get('under')
+                #             }
+                #             if self.db_manager.has_changed('team_totals', (event['event_id'], period_key, team_type), team_total_data):
+                #                 data_changed = True
+                #                 changed_items['team_totals'].add(team_type)
 
             # Log changes if detected
             if data_changed and not self.db_manager.first_pass:
@@ -228,12 +228,12 @@ class OddsCollector:
                 changes_desc = []
                 if changed_items['money_line']:
                     changes_desc.append("Moneyline")
-                if changed_items['spreads']:
-                    changes_desc.append(f"Spreads (handicaps: {sorted(changed_items['spreads'])})")
-                if changed_items['totals']:
-                    changes_desc.append(f"Totals (points: {sorted(changed_items['totals'])})")
-                if changed_items['team_totals']:
-                    changes_desc.append(f"Team Totals ({', '.join(changed_items['team_totals'])})")
+                # if changed_items['spreads']:
+                #     changes_desc.append(f"Spreads (handicaps: {sorted(changed_items['spreads'])})")
+                # if changed_items['totals']:
+                #     changes_desc.append(f"Totals (points: {sorted(changed_items['totals'])})")
+                # if changed_items['team_totals']:
+                #     changes_desc.append(f"Team Totals ({', '.join(changed_items['team_totals'])})")
                 logger.info(f"Changes detected for {event['home']} vs {event['away']}: {', '.join(changes_desc)}")
 
             # Insert or update event
@@ -308,7 +308,8 @@ class OddsCollector:
                 if period.get('spreads'):
                     for handicap_key, spread in period['spreads'].items():
                         handicap = float(spread.get('hdp', handicap_key))
-                        if handicap in changed_items['spreads']:
+                        # if handicap in changed_items['spreads']:
+                        if spread:
                             cur.execute('''
                             INSERT INTO spreads (
                                 time, period_id, handicap, alt_line_id,
@@ -326,7 +327,8 @@ class OddsCollector:
 
                 if period.get('totals'):
                     for points, total in period['totals'].items():
-                        if float(points) in changed_items['totals']:
+                        # if float(points) in changed_items['totals']:
+                        if total:
                             cur.execute('''
                             INSERT INTO totals (
                                 time, period_id, points, alt_line_id,
@@ -344,7 +346,8 @@ class OddsCollector:
 
                 if period.get('team_total'):
                     for team_type, team_data in period['team_total'].items():
-                        if team_data and team_type in changed_items['team_totals']:
+                        # if team_data and team_type in changed_items['team_totals']:
+                        if team_data:
                             cur.execute('''
                             INSERT INTO team_totals (
                                 time, period_id, team_type, points,

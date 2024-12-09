@@ -76,7 +76,8 @@ class DatabaseManager:
                 is_have_odds BOOLEAN,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 last_updated TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                event_category TEXT
+                event_category TEXT,
+                archived_at BOOLEAN DEFAULT FALSE
             );
             ''')
 
@@ -94,6 +95,7 @@ class DatabaseManager:
                 line_id BIGINT,
                 number INTEGER,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                archived_at BOOLEAN DEFAULT FALSE,
                 FOREIGN KEY (event_id) REFERENCES events (event_id) ON DELETE CASCADE,
                 CONSTRAINT unique_event_period UNIQUE (event_id, period_number)
             );
@@ -107,6 +109,7 @@ class DatabaseManager:
                 draw_odds DECIMAL,
                 away_odds DECIMAL,
                 max_bet DECIMAL,
+                archived_at BOOLEAN DEFAULT FALSE,
                 FOREIGN KEY (period_id) REFERENCES periods (period_id) ON DELETE CASCADE
             );
             ''')
@@ -120,6 +123,7 @@ class DatabaseManager:
                 home_odds DECIMAL,
                 away_odds DECIMAL,
                 max_bet DECIMAL,
+                archived_at BOOLEAN DEFAULT FALSE,
                 FOREIGN KEY (period_id) REFERENCES periods (period_id) ON DELETE CASCADE
             );
             ''')
@@ -133,6 +137,7 @@ class DatabaseManager:
                 over_odds DECIMAL,
                 under_odds DECIMAL,
                 max_bet DECIMAL,
+                archived_at BOOLEAN DEFAULT FALSE,
                 FOREIGN KEY (period_id) REFERENCES periods (period_id) ON DELETE CASCADE
             );
             ''')
@@ -146,6 +151,7 @@ class DatabaseManager:
                 over_odds DECIMAL,
                 under_odds DECIMAL,
                 max_bet DECIMAL,
+                archived_at BOOLEAN DEFAULT FALSE,
                 FOREIGN KEY (period_id) REFERENCES periods (period_id) ON DELETE CASCADE
             );
             ''')
@@ -177,7 +183,8 @@ class DatabaseManager:
 
             for index_query in indexes:
                 cur.execute(index_query)
-                logger.info(f"Index {index_query} created successfully.")
+            
+            logger.info(f"Indexes setup successfully.")
 
             conn.commit()
             cur.close()
@@ -441,7 +448,7 @@ if __name__ == "__main__":
     db = DatabaseManager()
     db.ensure_database_exists()
     db.ensure_tables_exist()
-    db.ensure_archive_database_exists()
-    db.ensure_archive_tables_exist()
+    # db.ensure_archive_database_exists()
+    # db.ensure_archive_tables_exist()
     db.setup_triggers()
 

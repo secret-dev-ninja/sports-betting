@@ -1,6 +1,5 @@
 import React from 'react';
 import ArchiveDashboard from '@/components/archive_dashboard';
-import { useRouter } from 'next/router';
 import { Bell } from "lucide-react";
 import { GetServerSideProps } from 'next';
 
@@ -20,9 +19,6 @@ interface TeamPageProps {
 }
 
 const Teams = ({ initialData, error }: TeamPageProps) => {
-  const router = useRouter();
-
-  // If there's an error, show error state
   if (error) {
     return (
       <div className="p-4 max-w-4xl mx-auto">
@@ -66,9 +62,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       throw new Error('Team parameter is required');
     }
 
+    console.log('url', `${process.env.NEXT_APP_EVENT_API_URL}?team_name=${team}&type=archive`);
     // Fetch data server-side
     const response = await fetch(
-      `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=&league_name=&team_name=${team}&type=archive`,
+      `${process.env.NEXT_APP_EVENT_API_URL}?team_name=${team}&type=archive`,
       {
         headers: { 'Content-Type': 'application/json' },
       }
@@ -79,7 +76,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     }
 
     const data = await response.json();
-
     // Return the data as props
     return {
       props: {

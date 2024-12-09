@@ -45,27 +45,303 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-def get_db_connection(type: str = 'live'):
+def get_db_connection():
     try:
-        if type == 'live':
-            conn = psycopg2.connect(**DB_CONFIG)
-            conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-        else:
-            params = DB_CONFIG.copy()
-            params['dbname'] = f"{DB_CONFIG['dbname']}_archive"
-            conn = psycopg2.connect(**params)
-            conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        conn = psycopg2.connect(**DB_CONFIG)
+        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
             
         return conn
     except Exception as e:
         logger.error(f"Database connection error: {e}")
         raise HTTPException(status_code=500, detail="Database connection failed")
 
+@app.get("/receive-options-event")
+async def receive_options_event(sport_name: str = '', league_name: str = '', type: str = 'live'):
+    if sport_name == '' and league_name == '':
+        url = os.getenv('PINNACLE_API_SPORTS_URL')
+        
+        headers = {
+            "x-rapidapi-host": os.getenv('PINNACLE_API_HOST'),
+            "x-rapidapi-key": os.getenv('PINNACLE_API_KEY')
+        }
+
+        logger.info("Requesting sports list information from Pinnacle API")
+
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            
+            sports =  [{"value": get_uname(sport['name']), "label": sport['name']} for sport in data]
+            return sports   
+            
+        except requests.exceptions.RequestException as e:
+                logger.error(f"API request failed: {e}")
+                if hasattr(e, 'response') and e.response is not None:
+                    logger.error(f"Response content: {e.response.text}")
+                return None
+    elif sport_name != '' and league_name == '':
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        ## get leagues
+        base_query = """
+            SELECT DISTINCT league_uname, league_name
+            FROM events
+            WHERE sport_uname = %s 
+            AND event_type = 'prematch'
+        """
+        archived_query = "AND archived_at = FALSE" if type == 'live' else "AND archived_at = TRUE"
+        base_query += archived_query
+
+        cursor.execute(base_query, (sport_name,))
+
+        leagues = cursor.fetchall()
+        leaguesOpts = [{
+            'value': league[0],
+            'label': league[1], 
+        } for league in leagues]
+
+        ## get teams
+        archived_status = "FALSE" if type == 'live' else "TRUE"
+
+        cursor.execute("""
+        SELECT DISTINCT team_name, team
+        FROM (
+            SELECT home_team_uname AS team_name, home_team AS team
+            FROM events
+            WHERE sport_uname = %s
+            AND event_type = 'prematch'
+            AND archived_at = %s
+            UNION ALL
+            SELECT away_team_uname AS team_name, away_team AS team
+            FROM events
+            WHERE sport_uname = %s
+            AND event_type = 'prematch'
+            AND archived_at = %s
+            ) AS combined_teams ORDER BY team ASC;
+        """, (sport_name, archived_status, sport_name, archived_status))
+
+        teams = cursor.fetchall()
+        teamsOpts = [{
+            'value': team[0],
+            'label': team[1],
+        } for team in teams]
+
+        return {
+            'leagues': leaguesOpts,
+            'teams': teamsOpts
+        }
+    elif sport_name != '' and league_name != '':
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        archived_status = "FALSE" if type == 'live' else "TRUE"
+        cursor.execute("""
+        SELECT DISTINCT team_name, team
+        FROM (
+            SELECT home_team_uname AS team_name, home_team AS team
+            FROM events
+            WHERE sport_uname = %s
+            AND league_uname = %s
+            AND event_type = 'prematch'
+            AND archived_at = %s
+            UNION ALL
+            SELECT away_team_uname AS team_name, away_team AS team
+            FROM events
+            WHERE sport_uname = %s
+            AND league_uname = %s
+            AND event_type = 'prematch'
+            AND archived_at = %s
+        ) AS combined_teams ORDER BY team ASC;
+        """, (sport_name, league_name, archived_status, sport_name, league_name, archived_status))
+
+        teams = cursor.fetchall()
+        result = [{
+            'value': team[0],
+            'label': team[1],
+        } for team in teams]
+
+        return result
+
+@app.get("/receive-event-info")
+async def receive_event_info(sport_name: str = '', league_name: str = '', team_name: str = '', type: str = 'live'):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    if sport_name != '' and league_name != '' and team_name == '':
+        archived_status = "FALSE" if type == 'live' else "TRUE"
+
+        base_query = """
+            SELECT * FROM (
+                SELECT DISTINCT ON (e.event_id) e.event_id, 
+                    e.home_team,
+                    e.away_team,
+                    e.league_name,
+                    e.starts :: TIMESTAMP AS starts,
+                    l.created_at AT TIME ZONE 'UTC'
+                FROM
+                    events e
+                JOIN api_request_logs l ON l.event_id = e.event_id 
+                WHERE
+                    e.sport_uname = %s
+                    AND e.league_uname = %s 
+                    AND e.event_type = 'prematch'
+                    AND e.archived_at = %s
+                ORDER BY
+                    e.event_id,
+                    l.created_at DESC 
+            ) AS tmp 
+            ORDER BY
+                tmp.starts DESC;
+        """
+
+        cursor.execute(base_query, (sport_name, league_name, archived_status))
+        events = cursor.fetchall()
+        
+        result = [
+            {
+                'event_id': event[0],
+                'home_team': event[1],
+                'away_team': event[2],
+                'league_name': event[3],
+                'starts': event[4],
+                'updated_at': event[5]
+            } for event in events
+        ]
+        
+        return result
+    elif sport_name != '' and league_name == '' and team_name != '':
+        archived_status = "FALSE" if type == 'live' else "TRUE"
+
+        base_query = """
+            SELECT * FROM (
+                SELECT DISTINCT ON (e.event_id) e.event_id, 
+                    e.home_team,
+                    e.away_team,
+                    e.league_name,
+                    e.starts :: TIMESTAMP AS starts,
+                    l.created_at AT TIME ZONE 'UTC'
+                FROM
+                    events e
+                JOIN api_request_logs l ON l.event_id = e.event_id 
+                WHERE
+                    e.sport_uname = %s
+                    AND (e.home_team_uname = %s OR e.away_team_uname = %s)
+                    AND e.event_type = 'prematch'
+                    AND e.archived_at = %s
+                ORDER BY
+                    e.event_id,
+                    l.created_at DESC 
+            ) AS tmp 
+            ORDER BY
+                tmp.starts DESC;
+        """
+
+        cursor.execute(base_query, (sport_name, team_name, team_name, archived_status))
+
+        events = cursor.fetchall()
+        result = [
+            {
+                'event_id': event[0],
+                'home_team': event[1],
+                'away_team': event[2],
+                'league_name': event[3],
+                'starts': event[4],
+                'updated_at': event[5]
+            } for event in events
+        ]
+        
+        return result  
+    elif sport_name != '' and league_name != '' and team_name != '':
+        archived_status = "FALSE" if type == 'live' else "TRUE"
+
+        base_query = """
+            SELECT * FROM (
+                SELECT DISTINCT ON (e.event_id) e.event_id, 
+                    e.home_team,
+                    e.away_team,
+                    e.league_name,
+                    e.starts :: TIMESTAMP AS starts,
+                    l.created_at AT TIME ZONE 'UTC'
+                FROM
+                    events e
+                JOIN api_request_logs l ON l.event_id = e.event_id 
+                WHERE
+                    e.sport_uname = %s
+                    AND e.league_uname = %s 
+                    AND ( e.home_team_uname = %s OR e.away_team_uname = %s )
+                    AND e.event_type = 'prematch'
+                    AND e.archived_at = %s
+                ORDER BY
+                    e.event_id,
+                    l.created_at DESC 
+            ) AS tmp 
+            ORDER BY
+                tmp.starts DESC;
+        """
+
+        cursor.execute(base_query, (sport_name, league_name, team_name, team_name, archived_status))
+        events = cursor.fetchall()
+        
+        result = [
+            {
+                'event_id': event[0],
+                'home_team': event[1],
+                'away_team': event[2],
+                'league_name': event[3],
+                'starts': event[4],
+                'updated_at': event[5],
+            } for event in events
+        ]
+        
+        return result
+    elif sport_name == '' and league_name == '' and team_name != '':
+        base_query = """
+            SELECT * FROM (
+                SELECT DISTINCT ON (e.event_id) e.event_id, 
+                    e.home_team,
+                    e.away_team,
+                    e.league_name,
+                    e.starts :: TIMESTAMP AS starts,
+                    l.created_at AT TIME ZONE 'UTC'
+                FROM
+                    events e
+                JOIN api_request_logs l ON l.event_id = e.event_id 
+                WHERE
+                    ( e.home_team_uname = %s OR e.away_team_uname = %s )
+                    AND e.event_type = 'prematch'
+                    AND e.archived_at = TRUE
+                ORDER BY
+                    e.event_id,
+                    l.created_at DESC 
+            ) AS tmp 
+            ORDER BY
+                tmp.starts DESC;
+        """
+
+        cursor.execute(base_query, (team_name, team_name))
+
+        events = cursor.fetchall()
+        
+        result = [
+            {
+                'event_id': event[0],
+                'home_team': event[1],
+                'away_team': event[2],
+                'league_name': event[3],
+                'starts': event[4],
+                'updated_at': event[5],
+            } for event in events
+        ]
+        
+        return result
+
 @app.get("/receive-event")
 async def receive_event(event_id: str, type: str = 'live'):
     try:
         # Add the received event_id to the storage
-        conn = get_db_connection(type=type)
+        conn = get_db_connection()
         cursor = conn.cursor()
 
         # Query to get period_ids by event_id
@@ -97,7 +373,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                 WHERE
                     p.period_id = %s
             """
-            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type == 'live' else ''
+            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type == 'live' else 'AND ml.archived_at = TRUE'
             complete_query = base_query + time_condition + """
                 ORDER BY ml.time DESC LIMIT 1
             """
@@ -135,7 +411,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                 WHERE
                     s.period_id = %s 
             """
-            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type == 'live' else ''
+            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type == 'live' else 'AND s.archived_at = TRUE'
             complete_query = base_query + time_condition + """
                 ORDER BY s.handicap, s.time DESC;
             """
@@ -148,11 +424,11 @@ async def receive_event(event_id: str, type: str = 'live'):
                 most_recent_time = max(spreads, key=lambda x: x[4])[4]
 
                 # Filter totals to only include those with the most recent time
-                recent_spreads = [spread for spread in spreads if spread[4] == most_recent_time]
+                # recent_spreads = [spread for spread in spreads if spread[4] == most_recent_time]
 
                 # Determine the min and max points from the recent totals
-                min_handicap = min(recent_spreads, key=lambda x: x[0])[0]
-                max_handicap = max(recent_spreads, key=lambda x: x[0])[0]
+                # min_handicap = min(recent_spreads, key=lambda x: x[0])[0]
+                # max_handicap = max(recent_spreads, key=lambda x: x[0])[0]
 
                 spread_results = [
                     {
@@ -164,7 +440,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                         "max_bet": spread[3],
                         "vig": get_sum_vig('spread', [spread[1], spread[2]]),
                         "time": spread[4],
-                        "otb": spread[0] < min_handicap or spread[0] > max_handicap
+                        "otb": most_recent_time > spread[4]
                     } for spread in spreads
                 ]
             else:
@@ -185,7 +461,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                 WHERE 
                     t.period_id = %s
             """
-            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type == 'live' else ''
+            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type == 'live' else 'AND t.archived_at = TRUE'
             complete_query = base_query + time_condition + """
                 ORDER BY t.points, t.time DESC;
             """
@@ -197,12 +473,12 @@ async def receive_event(event_id: str, type: str = 'live'):
                 # Find the most recent time
                 most_recent_time = max(totals, key=lambda x: x[4])[4]
 
-                # Filter totals to only include those with the most recent time
-                recent_totals = [total for total in totals if total[4] == most_recent_time]
+                # # Filter totals to only include those with the most recent time
+                # recent_totals = [total for total in totals if total[4] == most_recent_time]
 
-                # Determine the min and max points from the recent totals
-                min_points = min(recent_totals, key=lambda x: x[0])[0]
-                max_points = max(recent_totals, key=lambda x: x[0])[0]
+                # # Determine the min and max points from the recent totals
+                # min_points = min(recent_totals, key=lambda x: x[0])[0]
+                # max_points = max(recent_totals, key=lambda x: x[0])[0]
 
                 total_results = [
                     {
@@ -214,7 +490,7 @@ async def receive_event(event_id: str, type: str = 'live'):
                         "max_bet": total[3],
                         "vig": get_sum_vig('total', [total[1], total[2]]),
                         "time": total[4],
-                        "otb": total[0] < min_points or total[0] > max_points
+                        "otb": most_recent_time > total[4]
                     } for total in totals
                 ]
             else:
@@ -238,7 +514,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
     if table == 'spread':
         try: 
             # Add the received event_id to the storage
-            conn = get_db_connection(type=type)
+            conn = get_db_connection()
             cursor = conn.cursor()
 
             # Query to get period_ids by event_id
@@ -251,7 +527,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                     JOIN periods p ON s.period_id = p.period_id
                     WHERE s.period_id = %s AND s.handicap = %s
             """
-            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type == 'live' else ''
+            time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type == 'live' else 'AND s.archived_at = TRUE'
 
             complete_query = base_query + time_condition + """
                     ORDER BY s.time DESC LIMIT 30 ) tmp 
@@ -275,7 +551,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
     elif table == 'money_line':
         try: 
             # Add the received event_id to the storage
-            conn = get_db_connection(type=type)
+            conn = get_db_connection()
             cursor = conn.cursor()
 
             # Query to get period_ids by event_id
@@ -288,7 +564,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                     JOIN periods p ON ml.period_id = p.period_id
                     WHERE ml.period_id = %s
             """
-            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type == 'live' else ''
+            time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type == 'live' else 'AND ml.archived_at = TRUE'
 
             complete_query = base_query + time_condition + """
                     ORDER BY ml.time DESC LIMIT 30 ) tmp 
@@ -312,7 +588,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
             raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
     elif table == 'total':
         try:
-            conn = get_db_connection(type=type)
+            conn = get_db_connection()
             cursor = conn.cursor()
 
             base_query = """
@@ -324,7 +600,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
                     JOIN periods p ON t.period_id = p.period_id
                     WHERE t.period_id = %s and t.points = %s
             """
-            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type == 'live' else ''
+            time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type == 'live' else 'AND t.archived_at = TRUE'
 
             complete_query = base_query + time_condition + """
                     ORDER BY t.time DESC LIMIT 30 ) tmp 
@@ -347,384 +623,6 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
             logger.error(f"Error in /receive-chart-event: {e}")
             raise HTTPException(status_code=500, detail="An error occurred while fetching chart data")
 
-@app.get("/receive-options-event")
-async def receive_options_event(sport_name: str = None, league_name: str = None, type: str = 'live'):
-    if sport_name is None and league_name is None:
-        url = os.getenv('PINNACLE_API_SPORTS_URL')
-        
-        headers = {
-            "x-rapidapi-host": os.getenv('PINNACLE_API_HOST'),
-            "x-rapidapi-key": os.getenv('PINNACLE_API_KEY')
-        }
-
-        logger.info("Requesting sports list information from Pinnacle API")
-
-        try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            
-            sports =  [{"value": get_uname(sport['name']), "label": sport['name']} for sport in data]
-            return sports   
-            
-        except requests.exceptions.RequestException as e:
-                logger.error(f"API request failed: {e}")
-                if hasattr(e, 'response') and e.response is not None:
-                    logger.error(f"Response content: {e.response.text}")
-                return None
-    elif sport_name is not None and league_name is None:
-        conn = get_db_connection(type=type)
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT DISTINCT league_uname, league_name
-            FROM events
-            WHERE sport_uname = %s 
-            AND event_type = 'prematch'
-            ORDER BY league_name ASC;
-        """, (sport_name,))
-
-        leagues = cursor.fetchall()
-        leaguesOpts = [{
-            'value': league[0],
-            'label': league[1], 
-        } for league in leagues]
-
-        cursor.execute("""
-        SELECT DISTINCT team_name, team
-        FROM (
-            SELECT home_team_uname AS team_name, home_team AS team
-            FROM events
-            WHERE sport_uname = %s
-            AND event_type = 'prematch'
-            UNION ALL
-            SELECT away_team_uname AS team_name, away_team AS team
-            FROM events
-            WHERE sport_uname = %s
-            AND event_type = 'prematch'
-        ) AS combined_teams ORDER BY team ASC;
-        """, (sport_name, sport_name))
-    
-        teams = cursor.fetchall()
-        teamsOpts = [{
-            'value': team[0],
-            'label': team[1],
-        } for team in teams]
-
-        return {
-            'leagues': leaguesOpts,
-            'teams': teamsOpts
-        }
-    elif sport_name is not None and league_name is not None:
-        conn = get_db_connection(type=type)
-        cursor = conn.cursor()
-
-        logger.info('starting receive-options...%s, %s', sport_name, league_name)
-
-        cursor.execute("""
-        SELECT DISTINCT team_name, team
-        FROM (
-            SELECT home_team_uname AS team_name, home_team AS team
-            FROM events
-            WHERE sport_uname = %s
-            AND league_uname = %s
-            AND event_type = 'prematch'
-            UNION ALL
-            SELECT away_team_uname AS team_name, away_team AS team
-            FROM events
-            WHERE sport_uname = %s
-            AND league_uname = %s
-            AND event_type = 'prematch'
-        ) AS combined_teams ORDER BY team ASC;
-        """, (sport_name, league_name, sport_name, league_name))
-
-        teams = cursor.fetchall()
-        result = [{
-            'value': team[0],
-            'label': team[1],
-        } for team in teams]
-
-        return result
-
-@app.get("/receive-event-info")
-async def receive_event_info(sport_name: str, league_name: str = '', team_name: str = '', type: str = 'live'):
-    conn = get_db_connection(type=type)
-    cursor = conn.cursor()
-
-    if sport_name != '' and league_name != '' and team_name == '':
-        query = ""
-        if type == 'live':
-            query = """
-                SELECT * FROM (
-                    SELECT DISTINCT ON (e.event_id) e.event_id, 
-                        e.home_team,
-                        e.away_team,
-                        e.league_name,
-                        e.starts :: TIMESTAMP AS starts,
-                        l.created_at AT TIME ZONE 'UTC'
-                    FROM
-                        events e
-                    JOIN api_request_logs l ON l.event_id = e.event_id 
-                    WHERE
-                        e.sport_uname = %s 
-                        AND e.league_uname = %s 
-                        AND e.event_type = 'prematch'
-                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts
-                    ORDER BY
-                        e.event_id,
-                        l.created_at DESC 
-                ) AS tmp 
-                ORDER BY
-                    tmp.starts DESC;
-            """
-        else:
-            query = """
-                SELECT * FROM (
-                    SELECT DISTINCT ON (event_id) event_id, 
-                        home_team,
-                        away_team,
-                        league_name,
-                        starts :: TIMESTAMP AS starts,
-                        archived_at AT TIME ZONE 'UTC'
-                    FROM
-                        events
-                    WHERE
-                        sport_uname = %s 
-                        AND league_uname = %s 
-                        AND event_type = 'prematch'
-                    ORDER BY
-                        event_id,
-                        archived_at DESC 
-                ) AS tmp 
-                ORDER BY
-                    tmp.starts DESC;
-            """
-
-        cursor.execute(query, (sport_name, league_name))
-        events = cursor.fetchall()
-        
-        result = [
-            {
-                'event_id': event[0],
-                'home_team': event[1],
-                'away_team': event[2],
-                'league_name': event[3],
-                'starts': event[4],
-                'updated_at': event[5]
-            } for event in events
-        ]
-        
-        return result
-    elif sport_name != '' and league_name == '' and team_name != '':
-        if type == 'live':
-            query = """
-                SELECT * FROM (
-                    SELECT DISTINCT ON (e.event_id) e.event_id,
-                        e.home_team,
-                        e.away_team,
-                        e.league_name,
-                        e.starts::TIMESTAMP AS starts,
-                        l.created_at AT TIME ZONE 'UTC'
-                    FROM
-                        events e
-                    JOIN api_request_logs l ON l.event_id = e.event_id
-                    WHERE
-                        e.sport_uname = %s
-                        AND (e.home_team_uname = %s OR e.away_team_uname = %s)
-                        AND e.event_type = 'prematch'
-                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts
-                    ORDER BY
-                        event_id,
-                        archived_at DESC
-                ) AS tmp
-                ORDER BY 
-                    tmp.starts DESC;
-            """
-        else:
-            query = """
-                SELECT * FROM (
-                    SELECT DISTINCT ON (e.event_id) e.event_id,
-                        e.home_team,
-                        e.away_team,
-                        e.league_name,
-                        e.starts::TIMESTAMP AS starts,
-                        e.archived_at AT TIME ZONE 'UTC'
-                    FROM
-                        events e
-                    WHERE
-                        e.sport_uname = %s
-                        AND (e.home_team_uname = %s OR e.away_team_uname = %s)
-                        AND e.event_type = 'prematch'
-                    ORDER BY
-                        e.event_id,
-                        e.archived_at DESC
-                ) AS tmp
-                ORDER BY 
-                    tmp.starts DESC;
-            """
-
-        cursor.execute(query, (sport_name, team_name, team_name))
-
-        events = cursor.fetchall()
-        result = [
-            {
-                'event_id': event[0],
-                'home_team': event[1],
-                'away_team': event[2],
-                'league_name': event[3],
-                'starts': event[4],
-                'updated_at': event[5]
-            } for event in events
-        ]
-        
-        return result  
-    elif sport_name != '' and league_name != '' and team_name != '':
-        if type == 'live':
-            query = """
-                SELECT
-                * 
-                FROM
-                (
-                    SELECT DISTINCT ON (e.event_id) e.event_id,
-                        e.home_team,
-                        e.away_team,
-                        e.league_name,
-                        e.starts :: TIMESTAMP AS starts,
-                        l.created_at AT TIME ZONE 'UTC'
-                    FROM
-                        events e
-                        JOIN api_request_logs l ON l.event_id = e.event_id 
-                    WHERE
-                        e.sport_uname = %s 
-                        AND e.league_uname = %s 
-                        AND ( e.home_team_uname = %s OR e.away_team_uname = %s ) 
-                        AND e.event_type = 'prematch'
-                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts
-                    ORDER BY
-                        e.event_id,
-                        l.created_at DESC
-                ) AS tmp 
-                ORDER BY
-                    tmp.starts DESC;
-            """
-        else:
-            query = """
-                SELECT
-                * 
-                FROM
-                (
-                    SELECT DISTINCT ON (e.event_id) e.event_id,
-                        e.home_team,
-                        e.away_team,
-                        e.league_name,
-                        e.starts :: TIMESTAMP AS starts,
-                        e.archived_at AT TIME ZONE 'UTC'
-                    FROM
-                        events e
-                    WHERE
-                        e.sport_uname = %s 
-                        AND e.league_uname = %s 
-                        AND ( e.home_team_uname = %s OR e.away_team_uname = %s ) 
-                        AND e.event_type = 'prematch'
-                    ORDER BY
-                        e.event_id,
-                        e.archived_at DESC
-                ) AS tmp 
-                ORDER BY
-                    tmp.starts DESC;
-            """
-
-        cursor.execute(query, (sport_name, league_name, team_name, team_name))
-        events = cursor.fetchall()
-        
-        result = [
-            {
-                'event_id': event[0],
-                'home_team': event[1],
-                'away_team': event[2],
-                'league_name': event[3],
-                'starts': event[4],
-                'updated_at': event[5],
-            } for event in events
-        ]
-        
-        return result
-    elif sport_name == '' and league_name == '' and team_name != '':
-        if type == 'live':
-            query = """
-                SELECT
-                * 
-                FROM
-                (
-                    SELECT DISTINCT ON (e.event_id) e.event_id,
-                        e.home_team,
-                        e.away_team,
-                        e.league_name,
-                        e.starts :: TIMESTAMP AS starts,
-                        l.created_at AT TIME ZONE 'UTC'
-                    FROM
-                        events e
-                        JOIN api_request_logs l ON l.event_id = e.event_id 
-                    WHERE
-                        e.home_team_uname = %s OR e.away_team_uname = %s 
-                        AND e.event_type = 'prematch'
-                        AND l.created_at AT TIME ZONE 'UTC' <= e.starts
-                    ORDER BY
-                        e.event_id,
-                        l.created_at DESC
-                ) AS tmp 
-                ORDER BY
-                    tmp.starts DESC; 
-            """
-        else:
-            query = """
-                SELECT
-                    * 
-                FROM
-                (
-                    SELECT DISTINCT ON (e.event_id) e.event_id,
-                        e.home_team,
-                        e.away_team,
-                        e.league_name,
-                        e.starts :: TIMESTAMP AS starts,
-                        e.archived_at AT TIME ZONE 'UTC'
-                    FROM
-                        events e
-                    WHERE
-                        (e.home_team_uname = %s OR e.away_team_uname = %s)
-                        AND e.event_type = 'prematch'
-                    ORDER BY
-                        e.event_id,
-                        e.archived_at DESC
-                ) AS tmp 
-                ORDER BY
-                    tmp.starts DESC; 
-            """
-
-        cursor.execute(query, (team_name, team_name))
-
-        events = cursor.fetchall()
-        
-        result = [
-            {
-                'event_id': event[0],
-                'home_team': event[1],
-                'away_team': event[2],
-                'league_name': event[3],
-                'starts': event[4],
-                'updated_at': event[5],
-            } for event in events
-        ]
-        
-        return result
-
-# @app.get("/archive/{sport_name}/{league_name}/{team_name}/{event_id}")
-# async def archive_data(sport_name: str, league_name: str = 'l', team_name: str = 't', event_id: str = 'e'):
-#     if sport_name and event_id != 'e':
-#         return await receive_event(event_id)
-#     else:
-#         return await receive_event_info(sport_name, league_name, team_name)
-    
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     logger.info('starting the websocket backend...')
