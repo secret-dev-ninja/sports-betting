@@ -379,7 +379,8 @@ async def receive_options_event(sport_name: str = None, league_name: str = None,
         cursor.execute("""
             SELECT DISTINCT league_uname, league_name
             FROM events
-            WHERE sport_uname = %s ORDER BY league_name ASC;
+            WHERE sport_uname = %s 
+            ORDER BY league_name ASC;
         """, (sport_name,))
 
         leagues = cursor.fetchall()
@@ -474,7 +475,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         else:
             query = """
                 SELECT * FROM (
-                    SELECT DISTINCT ON (e.event_id) e.event_id, 
+                    SELECT DISTINCT ON (event_id) event_id, 
                         home_team,
                         away_team,
                         league_name,
@@ -685,7 +686,7 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
                     FROM
                         events e
                     WHERE
-                        e.home_team_uname = %s OR e.away_team_uname = %s 
+                        (e.home_team_uname = %s OR e.away_team_uname = %s)
                         AND e.event_type = 'prematch'
                     ORDER BY
                         e.event_id,
@@ -711,7 +712,6 @@ async def receive_event_info(sport_name: str, league_name: str = '', team_name: 
         ]
         
         return result
-
 
 # @app.get("/archive/{sport_name}/{league_name}/{team_name}/{event_id}")
 # async def archive_data(sport_name: str, league_name: str = 'l', team_name: str = 't', event_id: str = 'e'):
