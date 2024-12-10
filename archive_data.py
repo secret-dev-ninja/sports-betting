@@ -35,7 +35,6 @@ class ArchiveManager:
             source_cur.execute("""
                 SELECT event_id FROM events 
                 WHERE starts < %s AT TIME ZONE 'UTC'
-                AND archived_at = FALSE
                 AND event_id NOT IN (
                     SELECT event_id FROM events 
                     WHERE starts >= %s AT TIME ZONE 'UTC'
