@@ -47,7 +47,8 @@ const ChartComponent: React.FC<ChartComponentProps> = React.memo(({ data }) => {
         const minTime = parseCustomTime(sortedData[0].time).getTime();
         const maxTime = parseCustomTime(sortedData[sortedData.length - 1].time).getTime();
         
-        const ONE_MINUTE = 60 * Number(process.env.CHART_TIME_INTERVAL) * 1000;
+        // const ONE_MINUTE = 60 * Number(process.env.CHART_TIME_INTERVAL) * 1000;
+        const ONE_MINUTE = (maxTime - minTime)/30;
         const normalizedData: ChartData[] = [];
         
         let currentTime = minTime;
