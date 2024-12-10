@@ -73,26 +73,18 @@ const ChartComponent: React.FC<ChartComponentProps> = React.memo(({ data }) => {
             if (beforeIndex === -1) {
                 // Use nearest point if outside range
                 interpolatedPoint = { ...sortedData[0] };
+                interpolatedPoint.time = `${(currentTimeObj.getMonth() + 1).toString().padStart(2, '0')}-${currentTimeObj.getDate().toString().padStart(2, '0')} ${currentTimeObj.getHours().toString().padStart(2, '0')}:${currentTimeObj.getMinutes().toString().padStart(2, '0')}`;
             } else if (beforeIndex === sortedData.length - 1) {
                 interpolatedPoint = { ...sortedData[sortedData.length - 1] };
+                interpolatedPoint.time = `${(currentTimeObj.getMonth() + 1).toString().padStart(2, '0')}-${currentTimeObj.getDate().toString().padStart(2, '0')} ${currentTimeObj.getHours().toString().padStart(2, '0')}:${currentTimeObj.getMinutes().toString().padStart(2, '0')}`;
             } else {
                 const before = sortedData[beforeIndex];
                 const after = sortedData[beforeIndex + 1];
                 
-                const beforeTime = parseCustomTime(before.time).getTime();
-                const afterTime = parseCustomTime(after.time).getTime();
-                
-                // Calculate interpolation ratio
-                const ratio = (currentTime - beforeTime) / (afterTime - beforeTime);
-                
-                // Interpolate all possible values
+                // Only interpolate the time
                 interpolatedPoint = {
-                    time: `${(currentTimeObj.getMonth() + 1).toString().padStart(2, '0')}-${currentTimeObj.getDate().toString().padStart(2, '0')} ${currentTimeObj.getHours().toString().padStart(2, '0')}:${currentTimeObj.getMinutes().toString().padStart(2, '0')}`,
-                    home: interpolateValue(before.home, after.home, ratio, 2),
-                    away: interpolateValue(before.away, after.away, ratio, 2),
-                    over: interpolateValue(before.over, after.over, ratio, 2),
-                    under: interpolateValue(before.under, after.under, ratio, 2),
-                    limit: interpolateValue(before.limit, after.limit, ratio, 2)
+                    ...before,
+                    time: `${(currentTimeObj.getMonth() + 1).toString().padStart(2, '0')}-${currentTimeObj.getDate().toString().padStart(2, '0')} ${currentTimeObj.getHours().toString().padStart(2, '0')}:${currentTimeObj.getMinutes().toString().padStart(2, '0')}`
                 };
             }
 
@@ -140,4 +132,3 @@ const ChartComponent: React.FC<ChartComponentProps> = React.memo(({ data }) => {
 });
 
 export default ChartComponent;
-
