@@ -530,7 +530,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
             time_condition = "AND p.cutoff >= s.time AT TIME ZONE 'UTC'" if type == 'live' else 'AND s.archived_at = TRUE'
 
             complete_query = base_query + time_condition + """
-                    ORDER BY s.time DESC LIMIT 30 ) tmp 
+                    ORDER BY s.time DESC) tmp 
                 ORDER BY
                     tmp.time ASC
             """
@@ -567,11 +567,10 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
             time_condition = "AND p.cutoff >= ml.time AT TIME ZONE 'UTC'" if type == 'live' else 'AND ml.archived_at = TRUE'
 
             complete_query = base_query + time_condition + """
-                    ORDER BY ml.time DESC LIMIT 30 ) tmp 
+                    ORDER BY ml.time DESC) tmp 
                 ORDER BY
                     tmp.time ASC
             """
-
             cursor.execute(complete_query, (period_id,))
 
             spreads = cursor.fetchall()
@@ -603,7 +602,7 @@ async def receive_chart_event(period_id: str, hdp: float = None, points: float =
             time_condition = "AND p.cutoff >= t.time AT TIME ZONE 'UTC'" if type == 'live' else 'AND t.archived_at = TRUE'
 
             complete_query = base_query + time_condition + """
-                    ORDER BY t.time DESC LIMIT 30 ) tmp 
+                    ORDER BY t.time DESC) tmp 
                 ORDER BY
                     tmp.time ASC
             """
