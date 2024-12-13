@@ -47,13 +47,13 @@ const Teams = ({ initialData, error, type }: TeamPageProps) => {
             <div className="flex-1 flex justify-start ml-10 space-x-6">
               <Link 
                 href={`/teams/${team}`}
-                className={`font-semibold hover:text-gray-300 ${!type ? 'text-blue-500' : 'text-white'}`}
+                className={`font-semibold hover:text-gray-300 ${!type ? 'text-white' : 'text-gray-400'}`}
               >
                 Archive
               </Link>
               <Link 
                 href={`/teams/${team}?type=live`}
-                className={`font-semibold hover:text-gray-300 ${type === 'live' ? 'text-blue-500' : 'text-white'}`}
+                className={`font-semibold hover:text-gray-300 ${type === 'live' ? 'text-white' : 'text-gray-400'}`}
               >
                 Live
               </Link>
