@@ -10,7 +10,6 @@ import { PeriodTitles } from '../utils/period_titles';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaSync } from 'react-icons/fa';
-import { Bell } from 'lucide-react';
 
 interface DropdownOption {
   value: string;
@@ -26,7 +25,7 @@ interface Update {
   updated_at: string;
 }
 
-const ArchiveDashboard = ({ data }: { data: Update[] }) => {
+const LiveDashboard = ({ data }: { data: Update[] }) => {
   const [sportsOpts, setSportsOpts] = useState<DropdownOption[]>([]);
   const [sports, setSports] = useState<string>();
   const [leagueOpts, setLeaguesOps] = useState<DropdownOption[]>([]);
@@ -47,10 +46,10 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
   const fetchOpts = async (sport_name?: string, league_name?: string) => {
     try {
       const url = sport_name && league_name
-        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_name=${sport_name}&league_name=${league_name}&type=archive`
+        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_name=${sport_name}&league_name=${league_name}&type=live`
         : sport_name
-        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_name=${sport_name}&type=archive`
-        : `${process.env.NEXT_APP_OPTS_API_URL}?type=archive`;
+        ? `${process.env.NEXT_APP_OPTS_API_URL}?sport_name=${sport_name}&type=live`
+        : `${process.env.NEXT_APP_OPTS_API_URL}?type=live`;
 
       const response = await fetch(url, {
         method: 'GET',
@@ -78,6 +77,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
   };
 
   useEffect(() => {
+    console.log('data:', data);
     setUpdates(data || []);
   }, [data]);
 
@@ -113,7 +113,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
     
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&league_name=${value.value}&type=archive`,
+        `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&league_name=${value.value}&type=live`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -135,16 +135,16 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
     handlePageChange(1);
     const pathname = router.pathname;
 
-    router.push(`/teams/${value.value}`, undefined, { 
+    router.push(`/teams/${value.value}?type=live`, undefined, { 
       shallow: true,
       scroll: false 
     });
 
     if (pathname === '/teams/[team]') {
       const url = league ? 
-                `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&league_name=${league}&team_name=${value.value}&type=archive` : 
-                sports ? `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&team_name=${value.value}&type=archive` : 
-                `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=&league_name=&team_name=${value.value}&type=archive`;
+                `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&league_name=${league}&team_name=${value.value}&type=live` : 
+                sports ? `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=${sports}&team_name=${value.value}&type=live` : 
+                `${process.env.NEXT_APP_EVENT_API_URL}?sport_name=&league_name=&team_name=${value.value}&type=live`;
       try {
         const response = await fetch(
           url,
@@ -176,7 +176,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_API_URL}?event_id=${event_id}&type=archive`,
+        `${process.env.NEXT_APP_API_URL}?event_id=${event_id}&type=live`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -205,7 +205,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&table=money_line&type=archive`,
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&table=money_line&type=live`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -233,7 +233,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&hdp=${hdp}&table=spread&type=archive`,
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&hdp=${hdp}&table=spread&type=live`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -261,7 +261,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&points=${points}&table=total&type=archive`,
+        `${process.env.NEXT_APP_CHART_API_URL}?period_id=${period_id}&points=${points}&table=total&type=live`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -321,7 +321,7 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
         <CardHeader>
           <CardTitle>
             <div className="flex items-center gap-2 hover:cursor-pointer">
-              Archive Odds
+              Live Odds
             </div>
           </CardTitle>
         </CardHeader>
@@ -459,4 +459,4 @@ const ArchiveDashboard = ({ data }: { data: Update[] }) => {
   );
 };
 
-export default ArchiveDashboard;
+export default LiveDashboard;

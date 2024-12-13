@@ -297,6 +297,8 @@ async def receive_event_info(sport_name: str = '', league_name: str = '', team_n
         
         return result
     elif sport_name == '' and league_name == '' and team_name != '':
+        archived_status = "FALSE" if type == 'live' else "TRUE"
+
         base_query = """
             SELECT * FROM (
                 SELECT DISTINCT ON (e.event_id) e.event_id, 
@@ -311,7 +313,7 @@ async def receive_event_info(sport_name: str = '', league_name: str = '', team_n
                 WHERE
                     ( e.home_team_uname = %s OR e.away_team_uname = %s )
                     AND e.event_type = 'prematch'
-                    AND e.archived_at = TRUE
+                    AND e.archived_at = %s
                 ORDER BY
                     e.event_id,
                     l.created_at DESC 
@@ -320,7 +322,7 @@ async def receive_event_info(sport_name: str = '', league_name: str = '', team_n
                 tmp.starts DESC;
         """
 
-        cursor.execute(base_query, (team_name, team_name))
+        cursor.execute(base_query, (team_name, team_name, archived_status))
 
         events = cursor.fetchall()
         

@@ -2,8 +2,10 @@ import React from 'react';
 import ArchiveDashboard from '@/components/archive_dashboard';
 import { Bell } from "lucide-react";
 import { GetServerSideProps } from 'next';
+import { useRouter } from 'next/router';
+import LiveDashboard from '@/components/live_dashboard';
+import Link from 'next/link';
 
-// Define TypeScript interface for the data
 interface TeamData {
   event_id: string;
   home_team: string;
@@ -16,9 +18,13 @@ interface TeamData {
 interface TeamPageProps {
   initialData: TeamData[];
   error?: string;
+  type: string;
 }
 
-const Teams = ({ initialData, error }: TeamPageProps) => {
+const Teams = ({ initialData, error, type }: TeamPageProps) => {
+  const router = useRouter();
+  const { team } = router.query;
+
   if (error) {
     return (
       <div className="p-4 max-w-4xl mx-auto">
@@ -33,39 +39,45 @@ const Teams = ({ initialData, error }: TeamPageProps) => {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-start justify-between">
             <div className="text-white font-bold text-xl">
-              <div className='flex items-center gap-2 hover:cursor-pointer'>
+              <div className='flex items-center gap-2'>
                 <Bell className="h-5 w-5" />
-                Live Odds Updates
+                Odds Updates
               </div>
             </div>
             <div className="flex-1 flex justify-start ml-10 space-x-6">
-              <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer">
+              <Link 
+                href={`/teams/${team}`}
+                className={`font-semibold hover:text-gray-300 ${!type ? 'text-blue-500' : 'text-white'}`}
+              >
                 Archive
-              </div>
+              </Link>
+              <Link 
+                href={`/teams/${team}?type=live`}
+                className={`font-semibold hover:text-gray-300 ${type === 'live' ? 'text-blue-500' : 'text-white'}`}
+              >
+                Live
+              </Link>
             </div>
           </div>
         </div>
       </nav>
       <div>
-        <ArchiveDashboard data={initialData as TeamData[]} />
+        {!type ? <ArchiveDashboard data={initialData} /> : <LiveDashboard data={initialData} />}
       </div>
     </div>
   );
 };
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const { team } = context.params as { team: string };
+  const { team, type } = context.query as { team: string, type: string };
 
   try {
-    // Validate team parameter
     if (!team) {
       throw new Error('Team parameter is required');
     }
 
-    console.log('url', `${process.env.NEXT_APP_EVENT_API_URL}?team_name=${team}&type=archive`);
-    // Fetch data server-side
     const response = await fetch(
-      `${process.env.NEXT_APP_EVENT_API_URL}?team_name=${team}&type=archive`,
+      `${process.env.NEXT_APP_EVENT_API_URL}?team_name=${team}&type=${!type ? 'archive' : 'live'}`,
       {
         headers: { 'Content-Type': 'application/json' },
       }
@@ -76,24 +88,21 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     }
 
     const data = await response.json();
-    // Return the data as props
     return {
       props: {
         initialData: data,
+        type: type || null
       },
     };
   } catch (error) {
-    console.error('Error fetching team data:', error);
-    
-    // Return error state as props
     return {
       props: {
         initialData: [],
         error: error instanceof Error ? error.message : 'Failed to fetch team data',
+        type: type || null
       },
     };
   }
 };
 
 export default Teams;
-

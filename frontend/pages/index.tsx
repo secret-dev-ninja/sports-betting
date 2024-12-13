@@ -1,19 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import ArchiveDashboard from '@/components/archive_dashboard';
+import LiveDashboard from '@/components/live_dashboard';
+import Link from 'next/link';
 import { Bell } from "lucide-react";
 import dotenv from "dotenv";
-// import { useRouter } from 'next/router';
-// import LiveOddsDashboard from '@/components/live_odds';
 
 dotenv.config();
 
 const OddsDashboard = () => {
-  // const router = useRouter();
-  // const [navbar, setNavbar] = useState<String>('archive');
-
-  // useEffect(() => {
-  //   router.push('/archive');
-  // }, []);
+  const [navbar, setNavbar] = useState<String>('archive');
 
   return (
     <>
@@ -24,23 +19,30 @@ const OddsDashboard = () => {
               <div className="text-white font-bold text-xl">
                 <div className='flex items-center gap-2 hover:cursor-pointer'>
                   <Bell className="h-5 w-5" />
-                  Live Odds Updates
+                  Odds Updates
                 </div>
               </div>
               <div className="flex-1 flex justify-start ml-10 space-x-6">
-                {/* <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer" onClick={() => setNavbar('live')}>
-                  Live
-                </div> */}
-                {/* <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer" onClick={() => setNavbar('archive')}> */}
-                <div className="font-semibold text-white mt-[0.7] hover:text-gray-300 hover:cursor-pointer">
-                  Archive
-                </div>
+                <Link 
+                  href={`/`}
+                  className={`font-semibold hover:text-gray-300 ${navbar === 'archive' ? 'text-blue-500' : 'text-white'}`}
+                  onClick={() => setNavbar('archive')}
+                >
+                    Archive
+                </Link>
+                <Link 
+                  href={`/`}
+                  className={`font-semibold hover:text-gray-300 ${navbar === 'live' ? 'text-blue-500' : 'text-white'}`}
+                  onClick={() => setNavbar('live')}
+                >
+                    Live
+                </Link>
               </div>
             </div>
           </div>
         </nav>
         <div>
-          <ArchiveDashboard data={[]} />
+          {navbar === 'archive' ? <ArchiveDashboard data={[]} /> : <LiveDashboard data={[]} />}
         </div>
       </div>
     </>
