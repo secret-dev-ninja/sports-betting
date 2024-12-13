@@ -25,14 +25,14 @@ const OddsDashboard = () => {
               <div className="flex-1 flex justify-start ml-10 space-x-6">
                 <Link 
                   href={`/`}
-                  className={`font-semibold hover:text-gray-300 ${navbar === 'archive' ? 'text-white' : 'text-gray-400'}`}
+                  className={`font-semibold hover:text-gray-300 ${navbar === 'archive' ? 'text-gray-400' : 'text-white'}`}
                   onClick={() => setNavbar('archive')}
                 >
                     Archive
                 </Link>
                 <Link 
                   href={`/`}
-                  className={`font-semibold hover:text-gray-300 ${navbar === 'live' ? 'text-white' : 'text-gray-400'}`}
+                  className={`font-semibold hover:text-gray-300 ${navbar === 'live' ? 'text-gray-400' : 'text-white'}`}
                   onClick={() => setNavbar('live')}
                 >
                     Live
